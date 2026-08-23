@@ -490,6 +490,63 @@
   .success p{font-size:17px;margin-bottom:18px;}
   .success .cta{text-align:left;margin-top:36px;}
 
+  /* --- Waitlist form --- */
+  .waitlist-form-section{
+    padding:120px 0;
+    text-align:center;
+  }
+  .waitlist-form-section .eyebrow{margin-bottom:14px;}
+  .waitlist-form-section h2{
+    font-size:clamp(30px,4vw,42px);
+    margin-bottom:16px;
+  }
+  .waitlist-sub{
+    font-size:18px;color:var(--soft);
+    max-width:30em;margin:0 auto 44px;
+  }
+  .waitlist-form{
+    max-width:440px;margin:0 auto;
+    text-align:left;
+  }
+  .form-row{
+    display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  }
+  .form-field{margin-bottom:18px;}
+  .form-field label{
+    display:block;
+    font-family:'Raleway',sans-serif;
+    font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--soft);margin-bottom:6px;
+  }
+  .form-field input{
+    width:100%;
+    font-family:'Lora',Georgia,serif;
+    font-size:16px;color:var(--ink);
+    background:var(--paper);
+    border:1px solid var(--sky-line);
+    border-radius:6px;
+    padding:12px 14px;
+    transition:border-color .15s ease;
+  }
+  .form-field input:focus{
+    outline:none;
+    border-color:var(--lilac-line);
+  }
+  .form-submit{
+    width:100%;text-align:center;
+    border:none;cursor:pointer;
+    margin-top:6px;
+  }
+  .form-status{
+    margin-top:16px;font-size:14px;text-align:center;
+    color:var(--leaf);min-height:1.4em;
+  }
+  .form-status.error{color:#B3453A;}
+  @media (max-width:640px){
+    .waitlist-form-section{padding:80px 0;}
+    .form-row{grid-template-columns:1fr;}
+  }
+
   footer{
     background:var(--paper);
     border-top:1px solid var(--rule);
@@ -898,7 +955,7 @@
           <li>Learn the fundamentals of product and marketing and apply the frameworks</li>
           <li>Get your first 1,000 paying customers</li>
         </ol>
-        <div class="cta reveal" id="waitlist">
+        <div class="cta reveal">
           <a class="btn" href="#waitlist">Get on waitlist</a>
           <span class="note">Enrolment opens early-2027</span>
         </div>
@@ -921,6 +978,28 @@
           <span class="note">Enrolment opens early-2027</span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Waitlist form -->
+  <section id="waitlist" class="waitlist-form-section">
+    <div class="wrap">
+      <p class="eyebrow reveal">Almost there</p>
+      <h2 class="reveal">Get on the waitlist</h2>
+      <p class="waitlist-sub reveal">Drop your details below and I'll email you the moment enrolment opens.</p>
+
+      <form class="waitlist-form reveal" id="waitlistForm">
+        <div class="form-field">
+          <label for="wl-first">First name</label>
+          <input type="text" id="wl-first" name="firstName" required autocomplete="given-name">
+        </div>
+        <div class="form-field">
+          <label for="wl-email">Email</label>
+          <input type="email" id="wl-email" name="email" required autocomplete="email">
+        </div>
+        <button type="submit" class="btn form-submit">Join the waitlist</button>
+        <p class="form-status" id="waitlistStatus" aria-live="polite"></p>
+      </form>
     </div>
   </section>
 
@@ -968,6 +1047,52 @@
     entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
   },{threshold:0.12});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // ---- Waitlist form submission ----
+  // TODO: paste your Google Apps Script Web App URL here once deployed
+  const WAITLIST_ENDPOINT = "";
+
+  const waitlistForm = document.getElementById('waitlistForm');
+  const waitlistStatus = document.getElementById('waitlistStatus');
+
+  if (waitlistForm) {
+    waitlistForm.addEventListener('submit', function(e){
+      e.preventDefault();
+
+      if (!WAITLIST_ENDPOINT) {
+        waitlistStatus.textContent = "Form isn't connected yet — check back soon!";
+        waitlistStatus.classList.add('error');
+        return;
+      }
+
+      const submitBtn = waitlistForm.querySelector('.form-submit');
+      submitBtn.disabled = true;
+      waitlistStatus.classList.remove('error');
+      waitlistStatus.textContent = "Submitting…";
+
+      const formData = new FormData(waitlistForm);
+      const params = new URLSearchParams();
+      params.append('firstName', formData.get('firstName'));
+      params.append('email', formData.get('email'));
+
+      fetch(WAITLIST_ENDPOINT, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: params
+      })
+      .then(function(){
+        waitlistStatus.textContent = "You're on the list! I'll email you when enrolment opens.";
+        waitlistForm.reset();
+      })
+      .catch(function(){
+        waitlistStatus.textContent = "Something went wrong — please try again.";
+        waitlistStatus.classList.add('error');
+      })
+      .finally(function(){
+        submitBtn.disabled = false;
+      });
+    });
+  }
 </script>
 
 </body>
