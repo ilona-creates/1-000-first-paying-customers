@@ -231,7 +231,11 @@
     aspect-ratio:4/5;
     display:flex;align-items:center;justify-content:center;
   }
-  
+  .media img{
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+  }
   .media span{
     font-family:'Raleway',sans-serif;font-size:12px;
     letter-spacing:0.1em;text-transform:uppercase;color:var(--soft);
@@ -684,7 +688,7 @@
 </svg></span>Get the option to fund your lifestyle with it, raise investment or sell</li>
         </ul>
       </div>
-      <div class="media reveal"><svg class="sill-plant" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 21V6M12 16c-3 0-5-2-5.5-5 3 .5 5.5 2 5.5 5zM12 16c3 0 5-2 5.5-5-3 .5-5.5 2-5.5 5zM12 9c-2.2 0-3.8-1.5-4.2-3.8C10 5.6 12 6.8 12 9zM12 9c2.2 0 3.8-1.5 4.2-3.8C14 5.6 12 6.8 12 9z" fill="none" stroke="#2E6B28" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Café Kitsuné with napkin</span></div>
+      <div class="media reveal"><img src="images/napkin.jpg" alt="Café Kitsuné with napkin"></div>
     </div>
   </section>
 
@@ -799,7 +803,7 @@
   <!-- 2. Lifestyle -->
   <section class="lifestyle tint-leaf">
     <div class="wrap split flip">
-      <div class="media reveal"><svg class="sill-plant" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 21V6M12 16c-3 0-5-2-5.5-5 3 .5 5.5 2 5.5 5zM12 16c3 0 5-2 5.5-5-3 .5-5.5 2-5.5 5zM12 9c-2.2 0-3.8-1.5-4.2-3.8C10 5.6 12 6.8 12 9zM12 9c2.2 0 3.8-1.5 4.2-3.8C14 5.6 12 6.8 12 9z" fill="none" stroke="#2E6B28" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Eating croissant on Pont des Arts</span></div>
+      <div class="media reveal"><img src="images/croissant.jpg" alt="Eating croissant on Pont des Arts"></div>
       <div class="reveal">
         <h2>It’s paying customers that can fund the lifestyle you want</h2>
         <div class="poem">
@@ -960,14 +964,14 @@
           <span class="note">Enrolment opens early-2027</span>
         </div>
       </div>
-      <div class="media reveal"><svg class="sill-plant" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 21V6M12 16c-3 0-5-2-5.5-5 3 .5 5.5 2 5.5 5zM12 16c3 0 5-2 5.5-5-3 .5-5.5 2-5.5 5zM12 9c-2.2 0-3.8-1.5-4.2-3.8C10 5.6 12 6.8 12 9zM12 9c2.2 0 3.8-1.5 4.2-3.8C14 5.6 12 6.8 12 9z" fill="none" stroke="#2E6B28" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Île Saint-Louis café with half and half me and notebook</span></div>
+      <div class="media reveal"><img src="images/notebookandme.jpg" alt="Île Saint-Louis café with half and half me and notebook"></div>
     </div>
   </section>
 
   <!-- 8. Success -->
   <section class="success tint-leaf">
     <div class="wrap split flip">
-      <div class="media reveal"><svg class="sill-plant" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 21V6M12 16c-3 0-5-2-5.5-5 3 .5 5.5 2 5.5 5zM12 16c3 0 5-2 5.5-5-3 .5-5.5 2-5.5 5zM12 9c-2.2 0-3.8-1.5-4.2-3.8C10 5.6 12 6.8 12 9zM12 9c2.2 0 3.8-1.5 4.2-3.8C14 5.6 12 6.8 12 9z" fill="none" stroke="#2E6B28" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Place des Vosges looking up</span></div>
+      <div class="media reveal"><img src="images/hope.jpg" alt="Place des Vosges looking up"></div>
       <div class="reveal">
         <h2>Learn to market and sell the value you've built</h2>
         <p>Get your 1,000 paying customers</p>
@@ -996,6 +1000,10 @@
         <div class="form-field">
           <label for="wl-email">Email</label>
           <input type="email" id="wl-email" name="email" required autocomplete="email">
+        </div>
+        <div class="form-field">
+          <label for="wl-email-confirm">Confirm email</label>
+          <input type="email" id="wl-email-confirm" name="emailConfirm" required autocomplete="email">
         </div>
         <button type="submit" class="btn form-submit">Join the waitlist</button>
         <p class="form-status" id="waitlistStatus" aria-live="polite"></p>
