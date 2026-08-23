@@ -129,6 +129,7 @@
 
   /* ---------- Sections ---------- */
   section{padding:120px 0;}
+  .options-section, .plan, .success{padding:88px 0;}
   section + section{border-top:none;position:relative;}
   section + section::before{
     content:"";position:absolute;top:0;left:50%;
@@ -228,7 +229,7 @@
     overflow:hidden;
     background:#FCFCFA;
     position:relative;
-    aspect-ratio:4/5;
+    aspect-ratio:4/4.5;
     display:flex;align-items:center;justify-content:center;
   }
   .media img{
@@ -1000,6 +1001,10 @@
         <div class="form-field">
           <label for="wl-email">Email</label>
           <input type="email" id="wl-email" name="email" required autocomplete="email">
+        </div>
+        <div class="form-field">
+          <label for="wl-email-confirm">Confirm email</label>
+          <input type="email" id="wl-email-confirm" name="emailConfirm" required autocomplete="email">
         </div>
         <button type="submit" class="btn form-submit">Join the waitlist</button>
         <p class="form-status" id="waitlistStatus" aria-live="polite"></p>
