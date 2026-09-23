@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your first 1,000 paying customers — Ilona Melnychuk</title>
+<title>First 1,000 Paying Customers — Ilona Melnychuk</title>
 <meta name="description" content="A course to get your startup its first 1,000 paying customers. For first-time founders of startups. Enrolment opens early-2027.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <style>
   :root{
     /* ---- neutrals ---- */
@@ -99,8 +99,10 @@
   }
   .brand{
     font-family:'Raleway',sans-serif;
-    font-weight:600;font-size:16px;letter-spacing:0.02em;
-    color:var(--ink);text-decoration:none;
+    font-weight:800;font-size:clamp(16px,2vw,23px);letter-spacing:0.005em;
+    text-transform:uppercase;
+    color:var(--leaf);text-decoration:none;
+    white-space:nowrap;
   }
 
   /* ---------- Buttons / CTA block ---------- */
@@ -657,6 +659,9 @@
     .success .media{order:2;}
     .pair .turn{padding-left:6%;}
     .lifestyle .cta, .success .cta{text-align:center;}
+    .header-inner{padding:14px 20px;flex-wrap:wrap;row-gap:8px;}
+    .brand{font-size:clamp(14px,4.4vw,17px);letter-spacing:0;}
+    .header-inner .btn.small{flex-shrink:0;white-space:nowrap;padding:8px 14px;font-size:11px;}
   }
 </style>
 </head>
@@ -664,7 +669,7 @@
 
 <header>
   <div class="wrap header-inner">
-    <a class="brand" href="#top">Ilona Melnychuk</a>
+    <a class="brand" href="#top">First 1,000 Paying Customers</a>
     <a class="btn small" href="#waitlist">Get on waitlist</a>
   </div>
 </header>
