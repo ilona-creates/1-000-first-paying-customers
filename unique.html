@@ -586,14 +586,6 @@
             </div>
         </div>
 
-        <div class="section">
-            <h2 class="section-heading">A niche that works is one that people pay for</h2>
-            <div class="benefits">
-                <p class="benefit">Get one, tested, proven, niche</p>
-                <p class="benefit">Get 50 paying customers in that niche</p>
-                <p class="benefit">Get the framework on how to test new niche ideas</p>
-            </div>
-        </div>
     </div>
 
     <div class="testimonials-band">
@@ -703,10 +695,18 @@
                 if (e.key === 'Escape' && !overlay.hidden) closeModal();
             });
 
-            var ENDPOINT = "https://script.google.com/macros/s/AKfycby_x3q77i0Z35UeXqj9cjqipsDzrSuvCuTbarQRg5bLAkczFiHyCWtFNhL901s_kweLug/exec";
+            // TODO: paste your Google Apps Script Web App URL here once deployed
+            // (see scripts/niche-for-growth-optin.gs for the script + setup steps)
+            var ENDPOINT = "";
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
+
+                if (!ENDPOINT) {
+                    status.classList.remove('error');
+                    status.textContent = "Form isn't connected yet — check back soon!";
+                    return;
+                }
 
                 var submitBtn = form.querySelector('.optin-submit');
                 submitBtn.disabled = true;
