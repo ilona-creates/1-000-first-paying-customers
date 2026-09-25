@@ -79,6 +79,7 @@
             text-decoration: none;
             white-space: nowrap;
             transition: all 0.3s ease;
+            cursor: pointer;
         }
 
         .header-cta:hover {
@@ -163,6 +164,10 @@
 
         .section {
             margin-bottom: 0;
+        }
+
+        .section + .section {
+            margin-top: 48px;
         }
 
         .section-heading {
@@ -359,6 +364,112 @@
             color: rgba(250, 247, 242, 0.6);
         }
 
+        .optin-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(74, 14, 26, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .optin-overlay[hidden] {
+            display: none;
+        }
+
+        .optin-modal {
+            background: var(--warm-white);
+            border-radius: 16px;
+            max-width: 420px;
+            width: 100%;
+            padding: 40px 32px 32px;
+            position: relative;
+            box-shadow: 0 24px 60px rgba(74, 14, 26, 0.4);
+        }
+
+        .optin-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 34px;
+            height: 34px;
+            border: none;
+            background: transparent;
+            color: var(--brand);
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .optin-modal h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 30px;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .optin-subcopy {
+            font-family: 'Raleway', sans-serif;
+            font-size: 14px;
+            color: var(--ink);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .optin-field {
+            text-align: left;
+            margin-bottom: 14px;
+        }
+
+        .optin-field label {
+            display: block;
+            font-family: 'Raleway', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--brand);
+            margin-bottom: 6px;
+        }
+
+        .optin-field input {
+            width: 100%;
+            font-family: 'Raleway', sans-serif;
+            font-size: 15px;
+            padding: 10px 12px;
+            border: 1.5px solid rgba(139, 21, 56, 0.3);
+            border-radius: 8px;
+            background: white;
+            color: var(--ink);
+        }
+
+        .optin-field input:focus {
+            outline: none;
+            border-color: var(--brand);
+        }
+
+        .optin-submit {
+            width: 100%;
+            margin-top: 6px;
+            cursor: pointer;
+        }
+
+        .optin-status {
+            font-family: 'Raleway', sans-serif;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 12px;
+            min-height: 16px;
+            color: var(--brand);
+        }
+
+        .optin-status.error {
+            color: var(--accent);
+        }
+
         @media (max-width: 768px) {
             .site-nav {
                 padding: 18px 20px;
@@ -450,7 +561,7 @@
 <body>
     <div class="site-nav">
         <div class="site-header">Niche for Growth<sup>&reg;</sup></div>
-        <a href="index.html#waitlist" class="header-cta">Get the free framework</a>
+        <button type="button" class="header-cta" data-open-optin>Get the free framework</button>
     </div>
 
     <div class="container">
@@ -462,7 +573,16 @@
             <p class="subheading">In other words: Get one focused <em>edge</em>, <em>uniqueness</em>, or <em>new concept</em></p>
 
             <div class="cta-section">
-                <a href="index.html#waitlist" class="button button-primary">Get the free framework</a>
+                <button type="button" class="button button-primary" data-open-optin>Get the free framework</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-heading">What's inside the free framework</h2>
+            <div class="benefits">
+                <p class="benefit">Understand what a niche, new concept, or uniqueness actually is — and what it's not</p>
+                <p class="benefit">Know when you've found a niche, and when you're not there yet</p>
+                <p class="benefit">Learn how to test different niche ideas</p>
             </div>
         </div>
 
@@ -523,5 +643,100 @@
             <span>© 2026 Ilona Melnychuk. All rights reserved.</span>
         </div>
     </footer>
+
+    <div class="optin-overlay" id="optinOverlay" hidden>
+        <div class="optin-modal" role="dialog" aria-modal="true" aria-labelledby="optinTitle">
+            <button type="button" class="optin-close" id="optinClose" aria-label="Close">&times;</button>
+            <h2 id="optinTitle">Get the free framework</h2>
+            <p class="optin-subcopy">Enter your name and email and I'll send it straight over.</p>
+            <form id="optinForm">
+                <div class="optin-field">
+                    <label for="optin-name">Your name</label>
+                    <input type="text" id="optin-name" name="firstName" required autocomplete="given-name">
+                </div>
+                <div class="optin-field">
+                    <label for="optin-email">Email</label>
+                    <input type="email" id="optin-email" name="email" required autocomplete="email">
+                </div>
+                <input type="hidden" name="source" value="niche-for-growth">
+                <button type="submit" class="button button-primary optin-submit">Send me the framework</button>
+                <p class="optin-status" id="optinStatus" aria-live="polite"></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var overlay = document.getElementById('optinOverlay');
+            var closeBtn = document.getElementById('optinClose');
+            var openers = document.querySelectorAll('[data-open-optin]');
+            var form = document.getElementById('optinForm');
+            var status = document.getElementById('optinStatus');
+            var lastFocused;
+
+            function openModal() {
+                lastFocused = document.activeElement;
+                overlay.hidden = false;
+                document.body.style.overflow = 'hidden';
+                var nameInput = document.getElementById('optin-name');
+                if (nameInput) nameInput.focus();
+            }
+
+            function closeModal() {
+                overlay.hidden = true;
+                document.body.style.overflow = '';
+                if (lastFocused && lastFocused.focus) lastFocused.focus();
+            }
+
+            openers.forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    openModal();
+                });
+            });
+
+            closeBtn.addEventListener('click', closeModal);
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) closeModal();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !overlay.hidden) closeModal();
+            });
+
+            var ENDPOINT = "https://script.google.com/macros/s/AKfycby_x3q77i0Z35UeXqj9cjqipsDzrSuvCuTbarQRg5bLAkczFiHyCWtFNhL901s_kweLug/exec";
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                var submitBtn = form.querySelector('.optin-submit');
+                submitBtn.disabled = true;
+                status.classList.remove('error');
+                status.textContent = "Sending…";
+
+                var formData = new FormData(form);
+                var params = new URLSearchParams();
+                params.append('firstName', formData.get('firstName'));
+                params.append('email', formData.get('email'));
+                params.append('source', formData.get('source'));
+
+                fetch(ENDPOINT, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: params
+                })
+                    .then(function () {
+                        status.textContent = "Check your inbox — the framework is on its way.";
+                        form.reset();
+                    })
+                    .catch(function () {
+                        status.textContent = "Something went wrong — please try again.";
+                        status.classList.add('error');
+                    })
+                    .finally(function () {
+                        submitBtn.disabled = false;
+                    });
+            });
+        })();
+    </script>
 </body>
 </html>
