@@ -211,6 +211,156 @@
             font-size: 24px;
         }
 
+        .testimonials-section {
+            margin-top: 56px;
+        }
+
+        .testimonials {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 28px;
+        }
+
+        .testimonial {
+            background: white;
+            border: 1px solid rgba(139, 21, 56, 0.15);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+        }
+
+        .testimonial-quote {
+            font-size: 17px;
+            font-style: italic;
+            line-height: 1.55;
+            margin-bottom: 16px;
+        }
+
+        .testimonial-author {
+            font-family: 'Raleway', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #8B1538;
+        }
+
+        .testimonial-author span {
+            display: block;
+            font-weight: 400;
+            font-size: 12px;
+            color: var(--ink);
+            opacity: 0.65;
+            margin-top: 3px;
+        }
+
+        .site-footer {
+            background: var(--ink);
+            color: var(--warm-white);
+            margin-top: 64px;
+        }
+
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 56px 40px 32px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 48px;
+            justify-content: space-between;
+        }
+
+        .footer-about {
+            display: flex;
+            gap: 20px;
+            max-width: 420px;
+            flex: 1 1 320px;
+        }
+
+        .footer-photo {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 3px solid var(--gold);
+        }
+
+        .footer-about h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--warm-white);
+        }
+
+        .footer-about p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(250, 247, 242, 0.85);
+            margin-bottom: 14px;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 14px;
+        }
+
+        .footer-social a {
+            color: var(--gold);
+        }
+
+        .footer-social a:hover {
+            color: var(--warm-white);
+        }
+
+        .footer-social svg {
+            width: 19px;
+            height: 19px;
+            fill: currentColor;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .footer-links-label {
+            font-family: 'Raleway', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .footer-links a {
+            font-family: 'Raleway', sans-serif;
+            font-size: 14px;
+            color: rgba(250, 247, 242, 0.85);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: var(--warm-white);
+            text-decoration: underline;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(250, 247, 242, 0.15);
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
+            font-family: 'Raleway', sans-serif;
+            font-size: 13px;
+            color: rgba(250, 247, 242, 0.6);
+        }
+
         @media (max-width: 768px) {
             .site-nav {
                 padding: 18px 20px;
@@ -260,6 +410,37 @@
                 font-size: 11px;
                 padding: 6px 12px;
             }
+
+            .testimonials {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .footer-inner {
+                padding: 40px 24px 24px;
+                gap: 32px;
+                text-align: center;
+            }
+
+            .footer-about {
+                flex-direction: column;
+                align-items: center;
+                max-width: 100%;
+            }
+
+            .footer-social {
+                justify-content: center;
+            }
+
+            .footer-links {
+                align-items: center;
+            }
+
+            .footer-bottom {
+                padding: 18px 24px;
+                justify-content: center;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -290,6 +471,64 @@
                 <p class="benefit">Get the framework on how to test new niche ideas</p>
             </div>
         </div>
+
+        <div class="section testimonials-section">
+            <h2 class="section-heading">What founders are saying</h2>
+            <div class="testimonials">
+                <div class="testimonial">
+                    <p class="testimonial-quote">&ldquo;Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.&rdquo;</p>
+                    <p class="testimonial-author">Name Surname<span>Founder, Startup Name</span></p>
+                </div>
+                <div class="testimonial">
+                    <p class="testimonial-quote">&ldquo;Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.&rdquo;</p>
+                    <p class="testimonial-author">Name Surname<span>Founder, Startup Name</span></p>
+                </div>
+                <div class="testimonial">
+                    <p class="testimonial-quote">&ldquo;Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.&rdquo;</p>
+                    <p class="testimonial-author">Name Surname<span>Founder, Startup Name</span></p>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-about">
+                <img src="founders/images/portrait.jpg" alt="Ilona Melnychuk" class="footer-photo">
+                <div>
+                    <h3>Ilona Melnychuk</h3>
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.</p>
+                    <div class="footer-social">
+                        <a href="mailto:ilona@ilonamelnychuk.com" aria-label="Contact">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="5.5" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </a>
+                        <a href="#" target="_blank" rel="noopener" aria-label="LinkedIn">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 8.5h3v11h-3v-11zM8 7.2A1.7 1.7 0 1 1 8 3.8a1.7 1.7 0 0 1 0 3.4zM12.5 8.5h2.9v1.5h.04c.4-.76 1.4-1.56 2.9-1.56 3.1 0 3.66 2 3.66 4.7v6.36h-3v-5.64c0-1.35-.02-3.08-1.87-3.08-1.88 0-2.17 1.46-2.17 2.98v5.74h-3v-11z"/></svg>
+                        </a>
+                        <a href="#" target="_blank" rel="noopener" aria-label="Instagram">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="1.1"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-links">
+                <span class="footer-links-label">Navigate</span>
+                <a href="index.html">Home</a>
+                <a href="index.html#waitlist">Get the free framework</a>
+            </div>
+
+            <div class="footer-links">
+                <span class="footer-links-label">Legal</span>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms of Service</a>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <span>Niche for Growth</span>
+            <span>© 2026 Ilona Melnychuk. All rights reserved.</span>
+        </div>
+    </footer>
 </body>
 </html>
