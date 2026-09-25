@@ -35,20 +35,30 @@
             font-size: 20px;
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
+        }
+
+        .site-nav {
+            display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 24px 40px;
         }
 
         .container {
             max-width: 900px;
             width: 100%;
-            padding: 30px 40px;
+            margin: 0 auto;
+            padding: 20px 40px 50px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .site-header {
-            position: fixed;
-            top: 24px;
-            left: 32px;
             font-family: 'Raleway', sans-serif;
             font-size: 16px;
             font-weight: 700;
@@ -57,9 +67,6 @@
         }
 
         .header-cta {
-            position: fixed;
-            top: 18px;
-            right: 32px;
             font-family: 'Raleway', sans-serif;
             font-size: 13px;
             font-weight: 500;
@@ -81,10 +88,10 @@
         .tagline {
             text-align: center;
             font-family: 'Raleway', sans-serif;
-            font-size: 20px;
+            font-size: 15px;
             font-weight: 500;
             letter-spacing: 0.5px;
-            color: #8B1538;
+            color: #B97388;
             margin-bottom: 14px;
             text-transform: uppercase;
         }
@@ -139,8 +146,6 @@
             display: inline-block;
             transition: all 0.3s ease;
             text-align: center;
-            flex: 1;
-            max-width: 180px;
             white-space: nowrap;
         }
 
@@ -207,8 +212,17 @@
         }
 
         @media (max-width: 768px) {
+            .site-nav {
+                padding: 18px 20px;
+                gap: 10px;
+            }
+
             .container {
-                padding: 25px 24px;
+                padding: 16px 24px 40px;
+            }
+
+            .tagline {
+                font-size: 13px;
             }
 
             .hero h1 {
@@ -225,9 +239,7 @@
             }
 
             .button {
-                min-width: auto;
                 white-space: nowrap;
-                max-width: 140px;
                 font-size: 13px;
                 padding: 9px 20px;
             }
@@ -241,14 +253,10 @@
             }
 
             .site-header {
-                top: 16px;
-                left: 20px;
                 font-size: 14px;
             }
 
             .header-cta {
-                top: 14px;
-                right: 20px;
                 font-size: 11px;
                 padding: 6px 12px;
             }
@@ -256,8 +264,10 @@
     </style>
 </head>
 <body>
-    <div class="site-header">Niche for Growth</div>
-    <a href="index.html#waitlist" class="header-cta">Get the free framework</a>
+    <div class="site-nav">
+        <div class="site-header">Niche for Growth</div>
+        <a href="index.html#waitlist" class="header-cta">Get the free framework</a>
+    </div>
 
     <div class="container">
         <div class="tagline">For startups whose growth has slowed</div>
