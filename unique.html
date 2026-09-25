@@ -56,6 +56,28 @@
             color: #8B1538;
         }
 
+        .header-cta {
+            position: fixed;
+            top: 18px;
+            right: 32px;
+            font-family: 'Raleway', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 18px;
+            background-color: #8B1538;
+            border: 2px solid #8B1538;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .header-cta:hover {
+            background-color: #6a0f2c;
+            border-color: #6a0f2c;
+        }
+
         .tagline {
             text-align: center;
             font-family: 'Raleway', sans-serif;
@@ -223,11 +245,19 @@
                 left: 20px;
                 font-size: 14px;
             }
+
+            .header-cta {
+                top: 14px;
+                right: 20px;
+                font-size: 11px;
+                padding: 6px 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="site-header">Niche for Growth</div>
+    <a href="index.html#waitlist" class="header-cta">Get the free framework</a>
 
     <div class="container">
         <div class="tagline">For startups whose growth has slowed</div>
