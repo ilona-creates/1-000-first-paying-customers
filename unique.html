@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Once it's unique — First 1,000 Paying Customers</title>
+    <meta name="description" content="Venture scale growth needs a unique concept. Find the edge, the niche, the new angle that makes your startup hard to copy.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --warm-white: #faf7f2;
+            --sky-blue: #87ceeb;
+            --sunset-orange: #ff8c42;
+            --ink: #4a0e1a;
+            --light-gray: #e8e8e8;
+            --gold: #d4a574;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', serif;
+            background-color: var(--warm-white);
+            background-image: radial-gradient(circle, #d3d3d3 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: 0 0;
+            color: var(--ink);
+            line-height: 1.7;
+            font-size: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            padding: 30px 40px;
+        }
+
+        .tagline {
+            text-align: center;
+            font-family: 'Raleway', sans-serif;
+            font-size: 20px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            color: #8B1538;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .hero h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 66px;
+            font-weight: 400;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+
+        .subheading {
+            font-size: 21px;
+            font-weight: 400;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            color: var(--ink);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .subheading em {
+            font-style: italic;
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .cta-section {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+            flex-wrap: nowrap;
+        }
+
+        .button {
+            font-family: 'Raleway', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 28px;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            text-align: center;
+            flex: 1;
+            max-width: 180px;
+            white-space: nowrap;
+        }
+
+        .button-primary {
+            background-color: #8B1538;
+            border-color: #8B1538;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background-color: #6a0f2c;
+            border-color: #6a0f2c;
+        }
+
+        .button-secondary {
+            background-color: white;
+            border-color: #8B1538;
+            color: #8B1538;
+        }
+
+        .button-secondary:hover {
+            background-color: #f5f5f5;
+            border-color: #6a0f2c;
+            color: #6a0f2c;
+        }
+
+        .section {
+            margin-bottom: 0;
+        }
+
+        .section-heading {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 400;
+            margin-bottom: 20px;
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        .benefits {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: fit-content;
+            margin: 0 auto;
+            align-items: flex-start;
+        }
+
+        .benefit {
+            font-size: 19px;
+            line-height: 1.6;
+            color: var(--ink);
+            padding-left: 28px;
+            position: relative;
+            text-align: left;
+        }
+
+        .benefit:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #C41E3A;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px 24px;
+            }
+
+            .hero h1 {
+                font-size: 48px;
+            }
+
+            .subheading {
+                font-size: 17px;
+            }
+
+            .cta-section {
+                flex-direction: row;
+                gap: 10px;
+            }
+
+            .button {
+                min-width: auto;
+                white-space: nowrap;
+                max-width: 140px;
+                font-size: 13px;
+                padding: 9px 20px;
+            }
+
+            .section-heading {
+                font-size: 28px;
+            }
+
+            .benefit {
+                font-size: 17px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tagline">Your startup will grow</div>
+
+        <div class="hero">
+            <h1>Once it's unique</h1>
+
+            <p class="subheading">In other words: Once you've found the <em>edge</em>, the <em>niche</em>, the <em>new concept</em></p>
+
+            <div class="cta-section">
+                <a href="index.html#waitlist" class="button button-primary">Find your uniqueness</a>
+                <a href="index.html#waitlist" class="button button-secondary">Get starter guide</a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-heading">Venture scale growth needs a unique concept</h2>
+            <div class="benefits">
+                <p class="benefit">To disrupt an industry, you need a new angle</p>
+                <p class="benefit">Make it complicated for competitors to copy you, better buy you out</p>
+                <p class="benefit">Enable growth by word of mouth and virality</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
