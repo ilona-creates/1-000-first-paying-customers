@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Niche for Growth — Find your niche, grow your startup</title>
-    <meta name="description" content="Venture scale growth needs a unique concept. Find the edge, the niche, the new angle that makes your startup hard to copy.">
+    <meta name="description" content="For startups designed to scale, but growth is slow. Get one focused edge, uniqueness, or concept, and grow your startup.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Niche for Growth">
+    <meta property="og:title" content="Niche for Growth — Find your niche, grow your startup">
+    <meta property="og:description" content="For startups designed to scale, but growth is slow. Get one focused edge, uniqueness, or concept, and grow your startup.">
+    <meta property="og:url" content="https://ilonamelnychuk.com/niche.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Niche for Growth — Find your niche, grow your startup">
+    <meta name="twitter:description" content="For startups designed to scale, but growth is slow. Get one focused edge, uniqueness, or concept, and grow your startup.">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTciIGZpbGw9IiM4QjE1MzgiLz4KICA8dGV4dCB4PSIzMiIgeT0iMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIgogICAgICAgIGZvbnQtZmFtaWx5PSInUmFsZXdheScsJ0hlbHZldGljYSBOZXVlJyxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iODAwIgogICAgICAgIGZvbnQtc2l6ZT0iMjUiIGxldHRlci1zcGFjaW5nPSItMC41IiBmaWxsPSIjRkFGN0YyIj5ORzwvdGV4dD4KPC9zdmc+Cg==">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -269,7 +277,8 @@
             color: var(--ink);
         }
 
-        .mobile-break {
+        .mobile-break,
+        .tagline-break {
             display: none;
         }
 
@@ -310,6 +319,10 @@
         .footer-links a:hover {
             color: var(--brand-dark);
             text-decoration: underline;
+        }
+
+        .footer-links-mobile {
+            display: none;
         }
 
         .footer-bottom {
@@ -450,7 +463,34 @@
             }
 
             .footer-links {
-                align-items: center;
+                display: none;
+            }
+
+            .footer-links-mobile {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px 20px;
+                max-width: 1100px;
+                margin: 0 auto;
+                padding: 20px 24px 0;
+                border-top: 1px solid rgba(139, 21, 56, 0.15);
+                font-family: var(--font-ui);
+                font-size: 15px;
+            }
+
+            .footer-links-mobile a {
+                color: rgba(74, 14, 26, 0.85);
+                text-decoration: none;
+            }
+
+            .footer-links-mobile a:hover {
+                color: var(--brand-dark);
+                text-decoration: underline;
+            }
+
+            .footer-bottom {
+                border-top: none;
             }
         }
 
@@ -466,6 +506,10 @@
 
             .tagline {
                 font-size: 14px;
+            }
+
+            .tagline-break {
+                display: inline;
             }
 
             .hero h1 {
@@ -511,8 +555,13 @@
                 font-size: 15px;
             }
 
+            .optin-box {
+                padding: 36px 24px 28px;
+            }
+
             .optin-title {
-                font-size: 30px;
+                font-size: 22px;
+                white-space: nowrap;
             }
 
             .footer-bottom {
@@ -530,12 +579,12 @@
     </div>
 
     <div class="container">
-        <div class="tagline">For startups designed to scale, but growth is slow</div>
+        <div class="tagline">For startups designed to scale,<br class="tagline-break"> but growth is slow</div>
 
         <div class="hero">
             <h1>Find your niche,<br>grow your startup</h1>
 
-            <p class="subheading">In other words: Get one focused <em>edge</em>, <em>uniqueness</em>, or <em>new concept</em></p>
+            <p class="subheading">In other words: Get one focused <em>edge</em>, <em>uniqueness</em>, or <em>concept</em></p>
         </div>
 
         <div class="section">
@@ -573,13 +622,13 @@
                 <img src="images/ilona-portrait.jpg" alt="Ilona Melnychuk" class="footer-photo">
                 <div class="footer-about-text">
                     <h3>I'm the one who's built<br class="mobile-break"> the frameworks you'll need</h3>
-                    <p>I've built products in corporate, I've built and marketed them in my own startup. I understand you need a niche. You're probably sitting on one already (which is why you started your company in the first place), it's just buried as you try to sell to everyone. Or, you don't yet have a unique concept. I give you what you need for you to find your niche to grow.<br>—Ilona</p>
+                    <p>I've built products in corporate, I've built and marketed them in my own startup. I understand you need a niche. You're probably sitting on one already (which is why you started your company in the first place), it's just buried as you try to sell to everyone. Or, you don't yet have a unique concept. <em>I give you what you need to find your niche to grow.</em><br>—Ilona</p>
                 </div>
             </div>
 
             <div class="footer-links">
                 <span class="footer-links-label">Contact</span>
-                <a href="#" id="contact-link">Email</a>
+                <a href="#" class="js-contact-link">Email</a>
             </div>
 
             <div class="footer-links">
@@ -587,6 +636,12 @@
                 <a href="privacy.html">Privacy Policy</a>
                 <a href="terms.html">Terms of Service</a>
             </div>
+        </div>
+
+        <div class="footer-links-mobile">
+            <a href="#" class="js-contact-link">Email</a>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Service</a>
         </div>
 
         <div class="footer-bottom">
@@ -642,10 +697,12 @@
                     });
             });
 
-            var contactLink = document.getElementById('contact-link');
+            var contactLinks = document.querySelectorAll('.js-contact-link');
             var user = ['i', 'l', 'o', 'n', 'a'].join('');
             var domain = ['ilonamelnychuk', 'com'].join('.');
-            contactLink.href = 'mailto:' + user + '@' + domain;
+            contactLinks.forEach(function (link) {
+                link.href = 'mailto:' + user + '@' + domain;
+            });
         })();
     </script>
 </body>
