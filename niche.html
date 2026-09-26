@@ -293,42 +293,32 @@
             margin-bottom: 14px;
         }
 
-        .footer-links {
+        .footer-links-row {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .footer-links-label {
-            font-family: var(--font-ui);
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 4px;
-        }
-
-        .footer-links a {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 24px 0;
+            border-top: 1px solid rgba(139, 21, 56, 0.15);
             font-family: var(--font-ui);
             font-size: 15px;
-            font-weight: 400;
+        }
+
+        .footer-links-row a {
             color: rgba(74, 14, 26, 0.85);
             text-decoration: none;
             overflow-wrap: anywhere;
         }
 
-        .footer-links a:hover {
+        .footer-links-row a:hover {
             color: var(--brand-dark);
             text-decoration: underline;
         }
 
-        .footer-links-mobile {
-            display: none;
-        }
-
         .footer-bottom {
-            border-top: 1px solid rgba(139, 21, 56, 0.15);
+            border-top: none;
             max-width: 1100px;
             margin: 0 auto;
             padding: 20px 40px;
@@ -463,37 +453,6 @@
                 width: 210px;
                 height: 238px;
             }
-
-            .footer-links {
-                display: none;
-            }
-
-            .footer-links-mobile {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 8px 20px;
-                max-width: 1100px;
-                margin: 0 auto;
-                padding: 20px 24px 0;
-                border-top: 1px solid rgba(139, 21, 56, 0.15);
-                font-family: var(--font-ui);
-                font-size: 15px;
-            }
-
-            .footer-links-mobile a {
-                color: rgba(74, 14, 26, 0.85);
-                text-decoration: none;
-            }
-
-            .footer-links-mobile a:hover {
-                color: var(--brand-dark);
-                text-decoration: underline;
-            }
-
-            .footer-bottom {
-                border-top: none;
-            }
         }
 
         @media (max-width: 768px) {
@@ -551,10 +510,6 @@
 
             .footer-about p {
                 font-size: 17px;
-            }
-
-            .footer-links a {
-                font-size: 15px;
             }
 
             .optin-box {
@@ -628,19 +583,9 @@
                 </div>
             </div>
 
-            <div class="footer-links">
-                <span class="footer-links-label">Contact</span>
-                <a href="#" class="js-contact-link">Contact</a>
-            </div>
-
-            <div class="footer-links">
-                <span class="footer-links-label">Legal</span>
-                <a href="privacy.html">Privacy Policy</a>
-                <a href="terms.html">Terms of Service</a>
-            </div>
         </div>
 
-        <div class="footer-links-mobile">
+        <div class="footer-links-row">
             <a href="#" class="js-contact-link">Contact</a>
             <a href="privacy.html">Privacy Policy</a>
             <a href="terms.html">Terms of Service</a>
