@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTciIGZpbGw9IiM4QjE1MzgiLz4KICA8dGV4dCB4PSIzMiIgeT0iMzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIgogICAgICAgIGZvbnQtZmFtaWx5PSInUmFsZXdheScsJ0hlbHZldGljYSBOZXVlJyxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iODAwIgogICAgICAgIGZvbnQtc2l6ZT0iMjUiIGxldHRlci1zcGFjaW5nPSItMC41IiBmaWxsPSIjRkFGN0YyIj5ORzwvdGV4dD4KPC9zdmc+Cg==">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -27,17 +27,20 @@
             --brand-dark: #6a0f2c;
             --brand-light: #B97388;
             --accent: #C41E3A;
+            --font-display: 'Raleway', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: 'Cormorant Garamond', serif;
+            font-family: var(--font-ui);
             background-color: var(--warm-white);
             background-image: radial-gradient(circle, rgba(139, 21, 56, 0.18) 1px, transparent 1px);
             background-size: 20px 20px;
             background-position: 0 0;
             color: var(--ink);
-            line-height: 1.7;
-            font-size: 20px;
+            line-height: 1.6;
+            font-size: 18px;
+            font-weight: 400;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -66,16 +69,16 @@
         }
 
         .site-header {
-            font-family: 'Raleway', sans-serif;
+            font-family: var(--font-ui);
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 600;
             letter-spacing: 0.3px;
             color: var(--brand);
         }
 
         .header-cta {
-            font-family: 'Raleway', sans-serif;
-            font-size: 14px;
+            font-family: var(--font-ui);
+            font-size: 16px;
             font-weight: 600;
             padding: 8px 18px;
             background-color: #f3dce1;
@@ -96,8 +99,8 @@
 
         .tagline {
             text-align: center;
-            font-family: 'Raleway', sans-serif;
-            font-size: 16px;
+            font-family: var(--font-ui);
+            font-size: 15px;
             font-weight: 500;
             letter-spacing: 0.5px;
             color: var(--brand-light);
@@ -112,15 +115,16 @@
         }
 
         .hero h1 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 66px;
-            font-weight: 400;
-            line-height: 1.1;
+            font-family: var(--font-display);
+            font-size: 52px;
+            font-weight: 700;
+            line-height: 1.15;
             margin-bottom: 20px;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
         }
 
         .subheading {
+            font-family: var(--font-ui);
             font-size: 21px;
             font-weight: 400;
             line-height: 1.6;
@@ -133,13 +137,13 @@
 
         .subheading em {
             font-style: italic;
-            font-family: 'Cormorant Garamond', serif;
+            font-family: var(--font-ui);
         }
 
         .button {
-            font-family: 'Raleway', sans-serif;
-            font-size: 15px;
-            font-weight: 500;
+            font-family: var(--font-ui);
+            font-size: 16px;
+            font-weight: 600;
             padding: 10px 28px;
             border: 2px solid;
             border-radius: 8px;
@@ -190,7 +194,9 @@
         }
 
         .benefit {
-            font-size: 19px;
+            font-family: var(--font-ui);
+            font-size: 18px;
+            font-weight: 400;
             line-height: 1.6;
             color: var(--ink);
             padding-left: 28px;
@@ -232,7 +238,7 @@
             display: flex;
             align-items: center;
             gap: 28px;
-            max-width: 560px;
+            max-width: 800px;
             flex: 1 1 400px;
         }
 
@@ -255,9 +261,10 @@
         }
 
         .footer-about h3 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 24px;
+            font-family: var(--font-display);
+            font-size: 28px;
             font-weight: 600;
+            line-height: 1.28;
             margin-bottom: 8px;
             color: var(--ink);
         }
@@ -267,8 +274,10 @@
         }
 
         .footer-about p {
+            font-family: var(--font-ui);
             font-size: 18px;
-            line-height: 1.65;
+            font-weight: 400;
+            line-height: 1.6;
             color: rgba(74, 14, 26, 0.85);
             margin-bottom: 14px;
         }
@@ -280,8 +289,8 @@
         }
 
         .footer-links-label {
-            font-family: 'Raleway', sans-serif;
-            font-size: 13px;
+            font-family: var(--font-ui);
+            font-size: 14px;
             font-weight: 700;
             letter-spacing: 0.8px;
             text-transform: uppercase;
@@ -290,8 +299,9 @@
         }
 
         .footer-links a {
-            font-family: 'Raleway', sans-serif;
-            font-size: 16px;
+            font-family: var(--font-ui);
+            font-size: 15px;
+            font-weight: 400;
             color: rgba(74, 14, 26, 0.85);
             text-decoration: none;
             overflow-wrap: anywhere;
@@ -311,8 +321,9 @@
             flex-wrap: wrap;
             gap: 10px;
             justify-content: space-between;
-            font-family: 'Raleway', sans-serif;
+            font-family: var(--font-ui);
             font-size: 14px;
+            font-weight: 400;
             color: rgba(74, 14, 26, 0.6);
         }
 
@@ -327,8 +338,8 @@
         }
 
         .optin-eyebrow {
-            font-family: 'Raleway', sans-serif;
-            font-size: 13px;
+            font-family: var(--font-ui);
+            font-size: 14px;
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
@@ -337,15 +348,18 @@
         }
 
         .optin-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 32px;
-            font-weight: 500;
+            font-family: var(--font-display);
+            font-size: 38px;
+            font-weight: 700;
+            line-height: 1.2;
             margin-bottom: 10px;
         }
 
         .optin-subcopy {
-            font-family: 'Raleway', sans-serif;
+            font-family: var(--font-ui);
             font-size: 16px;
+            font-weight: 400;
+            line-height: 1.5;
             color: var(--ink);
             text-align: center;
             margin-bottom: 28px;
@@ -362,9 +376,9 @@
 
         .optin-field label {
             display: block;
-            font-family: 'Raleway', sans-serif;
-            font-size: 12px;
-            font-weight: 700;
+            font-family: var(--font-ui);
+            font-size: 14px;
+            font-weight: 600;
             letter-spacing: 0.5px;
             text-transform: uppercase;
             color: var(--brand);
@@ -373,8 +387,9 @@
 
         .optin-field input {
             width: 100%;
-            font-family: 'Raleway', sans-serif;
+            font-family: var(--font-ui);
             font-size: 16px;
+            font-weight: 400;
             padding: 10px 12px;
             border: 1.5px solid rgba(139, 21, 56, 0.3);
             border-radius: 8px;
@@ -394,8 +409,9 @@
         }
 
         .optin-status {
-            font-family: 'Raleway', sans-serif;
+            font-family: var(--font-ui);
             font-size: 14px;
+            font-weight: 400;
             text-align: center;
             margin-top: 12px;
             min-height: 16px;
@@ -453,16 +469,16 @@
             }
 
             .hero h1 {
-                font-size: 48px;
+                font-size: 36px;
             }
 
             .subheading {
-                font-size: 18px;
+                font-size: 19px;
             }
 
             .button {
                 white-space: nowrap;
-                font-size: 14px;
+                font-size: 16px;
                 padding: 9px 20px;
             }
 
@@ -471,16 +487,32 @@
             }
 
             .benefit {
-                font-size: 18px;
+                font-size: 17px;
             }
 
             .site-header {
-                font-size: 14px;
+                font-size: 16px;
             }
 
             .header-cta {
-                font-size: 13px;
-                padding: 6px 12px;
+                font-size: 15px;
+                padding: 7px 14px;
+            }
+
+            .footer-about h3 {
+                font-size: 23px;
+            }
+
+            .footer-about p {
+                font-size: 17px;
+            }
+
+            .footer-links a {
+                font-size: 15px;
+            }
+
+            .optin-title {
+                font-size: 30px;
             }
 
             .footer-bottom {
