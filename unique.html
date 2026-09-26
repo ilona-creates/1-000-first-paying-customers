@@ -212,7 +212,7 @@
         }
 
         .site-footer {
-            background: var(--warm-white);
+            background: rgba(139, 21, 56, 0.045);
             color: var(--ink);
             border-top: 1px solid rgba(139, 21, 56, 0.15);
             margin-top: 64px;
@@ -260,6 +260,10 @@
             font-weight: 600;
             margin-bottom: 8px;
             color: var(--ink);
+        }
+
+        .mobile-break {
+            display: none;
         }
 
         .footer-about p {
@@ -416,6 +420,14 @@
                 max-width: 100%;
             }
 
+            .footer-about h3 {
+                text-align: center;
+            }
+
+            .mobile-break {
+                display: inline;
+            }
+
             .footer-photo {
                 width: 210px;
                 height: 238px;
@@ -528,7 +540,7 @@
             <div class="footer-about">
                 <img src="images/ilona-portrait.jpg" alt="Ilona Melnychuk" class="footer-photo">
                 <div class="footer-about-text">
-                    <h3>I'm the one who's built the frameworks you'll need</h3>
+                    <h3>I'm the one who's built<br class="mobile-break"> the frameworks you'll need</h3>
                     <p>I've built products in corporate, I've built and marketed them in my own startup. I understand you need a niche. You're probably sitting on one already (which is why you started your company in the first place), it's just buried as you try to sell to everyone. Or, you don't yet have a unique concept. I give you what you need for you to find your niche to grow.<br>—Ilona</p>
                 </div>
             </div>
