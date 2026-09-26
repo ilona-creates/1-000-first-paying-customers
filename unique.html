@@ -50,6 +50,8 @@
             gap: 16px;
             flex-wrap: wrap;
             padding: 24px 40px;
+            background-color: rgba(139, 21, 56, 0.06);
+            border-bottom: 1px solid rgba(139, 21, 56, 0.12);
         }
 
         .container {
@@ -99,6 +101,7 @@
             font-weight: 500;
             letter-spacing: 0.5px;
             color: var(--brand-light);
+            margin-top: 32px;
             margin-bottom: 14px;
             text-transform: uppercase;
         }
@@ -310,8 +313,6 @@
             border: 1.5px solid rgba(139, 21, 56, 0.25);
             border-radius: 24px;
             background-color: rgba(255, 255, 255, 0.5);
-            background-image: radial-gradient(circle, rgba(139, 21, 56, 0.15) 1px, transparent 1px);
-            background-size: 18px 18px;
             text-align: center;
         }
 
@@ -501,7 +502,7 @@
             <form id="optinForm" class="optin-form">
                 <div class="optin-field">
                     <label for="optin-name">Your name</label>
-                    <input type="text" id="optin-name" name="firstName" placeholder="Jane" required autocomplete="given-name">
+                    <input type="text" id="optin-name" name="firstName" placeholder="Nick Friston" required autocomplete="given-name">
                 </div>
                 <div class="optin-field">
                     <label for="optin-email">Email address</label>
