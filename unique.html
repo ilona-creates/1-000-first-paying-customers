@@ -16,6 +16,10 @@
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         :root {
             --warm-white: #faf7f2;
             --ink: #4a0e1a;
@@ -307,50 +311,32 @@
             color: rgba(74, 14, 26, 0.6);
         }
 
-        .optin-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(74, 14, 26, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            z-index: 1000;
-        }
-
-        .optin-overlay[hidden] {
-            display: none;
-        }
-
-        .optin-modal {
-            background: var(--warm-white);
-            border-radius: 16px;
-            max-width: 420px;
-            width: 100%;
-            padding: 40px 32px 32px;
-            position: relative;
-            box-shadow: 0 24px 60px rgba(74, 14, 26, 0.4);
-        }
-
-        .optin-close {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 34px;
-            height: 34px;
-            border: none;
-            background: transparent;
-            color: var(--brand);
-            font-size: 24px;
-            line-height: 1;
-            cursor: pointer;
-        }
-
-        .optin-modal h2 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 30px;
-            font-weight: 500;
+        .optin-box {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 44px 40px 36px;
+            border: 1.5px solid rgba(139, 21, 56, 0.25);
+            border-radius: 24px;
+            background-color: rgba(255, 255, 255, 0.5);
+            background-image: radial-gradient(circle, rgba(139, 21, 56, 0.15) 1px, transparent 1px);
+            background-size: 18px 18px;
             text-align: center;
+        }
+
+        .optin-eyebrow {
+            font-family: 'Raleway', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--brand-light);
+            margin-bottom: 14px;
+        }
+
+        .optin-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 32px;
+            font-weight: 500;
             margin-bottom: 10px;
         }
 
@@ -359,7 +345,11 @@
             font-size: 14px;
             color: var(--ink);
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
+        }
+
+        .optin-form {
+            text-align: left;
         }
 
         .optin-field {
@@ -497,11 +487,11 @@
 <body>
     <div class="site-nav">
         <div class="site-header">Niche for Growth<sup>&reg;</sup></div>
-        <button type="button" class="header-cta" data-open-optin>Get the free framework</button>
+        <a href="#optin-box" class="header-cta">Get the free framework</a>
     </div>
 
     <div class="container">
-        <div class="tagline">For startups whose growth has slowed</div>
+        <div class="tagline">For startups designed to scale</div>
 
         <div class="hero">
             <h1>Find your niche,<br>grow your startup</h1>
@@ -509,7 +499,7 @@
             <p class="subheading">In other words: Get one focused <em>edge</em>, <em>uniqueness</em>, or <em>new concept</em></p>
 
             <div class="cta-section">
-                <button type="button" class="button button-primary" data-open-optin>Get the free framework</button>
+                <a href="#optin-box" class="button button-primary">Get the free framework</a>
             </div>
         </div>
 
@@ -520,6 +510,25 @@
                 <p class="benefit">Landing page structure to test new niche ideas</p>
                 <p class="benefit">The signs of having found a unique and profitable niche</p>
             </div>
+        </div>
+
+        <div class="section optin-box" id="optin-box">
+            <div class="optin-eyebrow">Lorem ipsum dolor sit amet</div>
+            <h2 class="optin-title">Get the free framework</h2>
+            <p class="optin-subcopy">Enter your name and email and I'll send it straight over.</p>
+            <form id="optinForm" class="optin-form">
+                <div class="optin-field">
+                    <label for="optin-name">Your name</label>
+                    <input type="text" id="optin-name" name="firstName" placeholder="Jane" required autocomplete="given-name">
+                </div>
+                <div class="optin-field">
+                    <label for="optin-email">Email address</label>
+                    <input type="email" id="optin-email" name="email" placeholder="you@email.com" required autocomplete="email">
+                </div>
+                <input type="hidden" name="source" value="niche-for-growth">
+                <button type="submit" class="button button-primary optin-submit">Send me the framework</button>
+                <p class="optin-status" id="optinStatus" aria-live="polite"></p>
+            </form>
         </div>
 
     </div>
@@ -552,64 +561,10 @@
         </div>
     </footer>
 
-    <div class="optin-overlay" id="optinOverlay" hidden>
-        <div class="optin-modal" role="dialog" aria-modal="true" aria-labelledby="optinTitle">
-            <button type="button" class="optin-close" id="optinClose" aria-label="Close">&times;</button>
-            <h2 id="optinTitle">Get the free framework</h2>
-            <p class="optin-subcopy">Enter your name and email and I'll send it straight over.</p>
-            <form id="optinForm">
-                <div class="optin-field">
-                    <label for="optin-name">Your name</label>
-                    <input type="text" id="optin-name" name="firstName" required autocomplete="given-name">
-                </div>
-                <div class="optin-field">
-                    <label for="optin-email">Email</label>
-                    <input type="email" id="optin-email" name="email" required autocomplete="email">
-                </div>
-                <input type="hidden" name="source" value="niche-for-growth">
-                <button type="submit" class="button button-primary optin-submit">Send me the framework</button>
-                <p class="optin-status" id="optinStatus" aria-live="polite"></p>
-            </form>
-        </div>
-    </div>
-
     <script>
         (function () {
-            var overlay = document.getElementById('optinOverlay');
-            var closeBtn = document.getElementById('optinClose');
-            var openers = document.querySelectorAll('[data-open-optin]');
             var form = document.getElementById('optinForm');
             var status = document.getElementById('optinStatus');
-            var lastFocused;
-
-            function openModal() {
-                lastFocused = document.activeElement;
-                overlay.hidden = false;
-                document.body.style.overflow = 'hidden';
-                var nameInput = document.getElementById('optin-name');
-                if (nameInput) nameInput.focus();
-            }
-
-            function closeModal() {
-                overlay.hidden = true;
-                document.body.style.overflow = '';
-                if (lastFocused && lastFocused.focus) lastFocused.focus();
-            }
-
-            openers.forEach(function (btn) {
-                btn.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    openModal();
-                });
-            });
-
-            closeBtn.addEventListener('click', closeModal);
-            overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) closeModal();
-            });
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && !overlay.hidden) closeModal();
-            });
 
             // TODO: paste your Google Apps Script Web App URL here once deployed
             // (see scripts/niche-for-growth-optin.gs for the script + setup steps)
