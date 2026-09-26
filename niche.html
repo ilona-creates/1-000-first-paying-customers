@@ -70,7 +70,7 @@ permalink: /niche/
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             padding: 24px 40px;
             background-color: rgba(139, 21, 56, 0.06);
             border-bottom: 1px solid rgba(139, 21, 56, 0.12);
@@ -114,6 +114,10 @@ permalink: /niche/
             background-color: #e8bcc7;
             border-color: var(--brand-dark);
             color: var(--brand-dark);
+        }
+
+        .header-cta .cta-short {
+            display: none;
         }
 
         .tagline {
@@ -538,12 +542,36 @@ permalink: /niche/
                 text-align: center;
             }
         }
+
+        @media (max-width: 480px) {
+            .site-nav {
+                padding: 16px 16px;
+                gap: 8px;
+            }
+
+            .site-header {
+                font-size: 14px;
+            }
+
+            .header-cta {
+                font-size: 13px;
+                padding: 6px 10px;
+            }
+
+            .header-cta .cta-full {
+                display: none;
+            }
+
+            .header-cta .cta-short {
+                display: inline;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="site-nav">
         <div class="site-header">Niche for Growth<sup>&reg;</sup></div>
-        <a href="#optin-box" class="header-cta">Get free starter framework</a>
+        <a href="#optin-box" class="header-cta"><span class="cta-full">Get free starter framework</span><span class="cta-short">Get framework</span></a>
     </div>
 
     <div class="container">
