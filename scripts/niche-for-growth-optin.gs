@@ -10,7 +10,7 @@
  *    - Execute as: Me
  *    - Who has access: Anyone
  * 5. Click Deploy, authorize it, and copy the Web app URL it gives you.
- * 6. Paste that URL into the ENDPOINT constant in unique.html
+ * 6. Paste that URL into the ENDPOINT constant in niche.html
  *    (search for "TODO: paste your Google Apps Script Web App URL").
  *
  * Each submission appends a row: Timestamp, Name, Email, Source.
