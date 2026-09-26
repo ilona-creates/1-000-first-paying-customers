@@ -246,6 +246,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            text-align: left;
         }
 
         .footer-about h3 {
@@ -400,6 +401,7 @@
             .footer-inner {
                 padding: 40px 24px 24px;
                 gap: 32px;
+                justify-content: center;
                 text-align: center;
             }
 
@@ -528,7 +530,7 @@
 
             <div class="footer-links">
                 <span class="footer-links-label">Contact</span>
-                <a href="mailto:ilona@ilonamelnychuk.com">ilona@ilonamelnychuk.com</a>
+                <a href="#" id="contact-link">Email me</a>
             </div>
 
             <div class="footer-links">
@@ -590,6 +592,11 @@
                         submitBtn.disabled = false;
                     });
             });
+
+            var contactLink = document.getElementById('contact-link');
+            var user = ['i', 'l', 'o', 'n', 'a'].join('');
+            var domain = ['ilonamelnychuk', 'com'].join('.');
+            contactLink.href = 'mailto:' + user + '@' + domain;
         })();
     </script>
 </body>
