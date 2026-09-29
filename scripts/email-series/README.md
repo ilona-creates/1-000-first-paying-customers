@@ -3,17 +3,22 @@
 Landing-page signup → Google Sheet → one email per day from Google Docs → status written back to the Sheet.
 
 ## Content rules (Google Docs)
-- One Google Doc per series, all inside the Drive folder.
-- **Doc name = the form's `source` value** (case/spaces/dashes ignored). The niche page uses
-  `source="niche-for-growth"`, so name the Doc `Niche for Growth`.
-- **One top-level tab per email**, in order. **Tab title = subject line.** Tab content = body.
+- One Google Doc per series, all inside the Drive folder. `CONFIG.SERIES` in `Code.gs` links a form `source`
+  value to its Doc (currently `niche-for-growth` -> "Niche Started Framework"). For a new series, add an entry
+  there (or just name the Doc after the `source` value).
+- **One email per tab, titled `Email 1`, `Email 2`, ...** in order. Other tabs (e.g. `Instructions`) are ignored.
+  If the Doc is a single tab, headings named `Email 1`, `Email 2`... split it instead.
+- **Subject:** optionally start an email with a line `Subject: Your subject here`. Otherwise it defaults to
+  `Niche Starter Framework, part N`.
+- An email with no text yet is skipped quietly (Last Error says so) and sent once you write it.
 - `{{name}}` is replaced with the subscriber's name (subject and body).
-- Supported: headings, bold, italic, underline, links, bulleted/numbered lists, horizontal rules.
-  Not supported: images and tables.
-- Adding a new series = add a Doc and a form with a matching `source`. No code changes.
+- Supported: headings, bold, italic, underline, links, lists, horizontal rules. Not images or tables.
+- Schedule: 9AM GMT, Monday-Friday (`appsscript.json` sets the time zone; `WEEKDAYS_ONLY` in `CONFIG`).
+  Email #1 is sent immediately at signup, even on a weekend.
 
 ## Setup (one time, ~5 min)
-1. Open the Sheet → **Extensions → Apps Script**. Delete the starter code, paste in `Code.gs`.
+1. Open the Sheet → **Extensions → Apps Script**. Delete the starter code, paste in `Code.gs`. In Project Settings, tick
+   "Show appsscript.json" and paste in `appsscript.json` (sets GMT).
 2. Check the `CONFIG` block at the top (IDs are pre-filled; confirm `REPLY_TO` and `SENDER_NAME`).
 3. Select **`installTrigger`** in the function dropdown → **Run** → approve the permissions
    (Sheets, Drive, Docs, send email). This schedules the daily send (default 9am, script time zone;
@@ -25,7 +30,7 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
    To test day 2 without waiting, run `sendDailyEmails` after clearing that row's **Last Sent** cell.
 
 ## Sheet columns
-`Timestamp, Name, Email, Source` (from the form) plus columns the script adds automatically:
+`Sign-up time, Name, Email` (existing) plus columns the script adds automatically: `Source`,
 `ID, Series, Status, Emails Sent, Total Emails, Last Sent, Last Error`.
 
 **Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, or `Error` (signup with no matching Doc).

@@ -25,11 +25,17 @@ var CONFIG = {
   DRIVE_FOLDER_ID: '1RehcbFybM7bWqGFZPU1z_DavYSp65J41',
   SENDER_NAME: 'Ilona Melnychuk',
   REPLY_TO: 'ilona@ilonamelnychuk.com',
-  SEND_HOUR: 9,            // daily send time (script time zone), used by installTrigger()
+  // form "source" value -> Google Doc (by ID, so renaming the Doc is safe) + friendly title for subjects.
+  // Series not listed here fall back to matching the Doc's NAME to the source value.
+  SERIES: {
+    'niche-for-growth': { docId: '1c-F5Kp3-vbU0ecnF0hbZX-M-tRF_D9VRJuDGdIajCls', title: 'Niche Starter Framework' }
+  },
+  SEND_HOUR: 9,            // daily send time in the script time zone (appsscript.json sets GMT)
+  WEEKDAYS_ONLY: true,     // no sends Saturday/Sunday (email #1 on signup is still immediate)
   MAX_RUNTIME_MS: 5 * 60 * 1000
 };
 
-var HEADERS = ['Timestamp', 'Name', 'Email', 'Source', 'ID', 'Series', 'Status',
+var HEADERS = ['Sign-up time', 'Name', 'Email', 'Source', 'ID', 'Series', 'Status',
                'Emails Sent', 'Total Emails', 'Last Sent', 'Last Error'];
 
 var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed' };
@@ -70,7 +76,7 @@ function doPost(e) {
     }
 
     var record = {};
-    record['Timestamp'] = new Date();
+    record['Sign-up time'] = new Date();
     record['Name'] = sanitizeCell_(name);
     record['Email'] = sanitizeCell_(email);
     record['Source'] = sanitizeCell_(source);
@@ -123,6 +129,7 @@ function sendDailyEmails() {
   if (!lock.tryLock(30000)) return;
   var started = Date.now();
   try {
+    if (CONFIG.WEEKDAYS_ONLY && Number(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'u')) >= 6) return;
     var sheet = getSheet_();
     var cols = getColumns_(sheet);
     var today = dayKey_(new Date());
@@ -164,8 +171,12 @@ function sendNext_(sheet, cols, sub, series) {
       return;
     }
     var mail = emails[idx];
+    if (!mail.html) {   // not written yet: stay Active and retry on the next run
+      writeRecord_(sheet, cols, sub.rowNum, { 'Total Emails': emails.length, 'Last Error': 'Email ' + (idx + 1) + ' is not written yet' });
+      return;
+    }
     var vars = { name: sub.name || 'there' };
-    var subject = fill_(mail.subject, vars, false);
+    var subject = fill_(mail.subject || (seriesTitle_(sub.source, series) + ', part ' + (idx + 1)), vars, false);
     var htmlBody = fill_(mail.html, vars, true) + unsubscribeFooter_(sub.id);
     var text = htmlToText_(htmlBody);
 
@@ -201,12 +212,22 @@ function setError_(sheet, cols, rowNum, message) {
 
 function findSeries_(source) {
   if (!source) return null;
+  var keys = Object.keys(CONFIG.SERIES);
+  for (var k = 0; k < keys.length; k++) {
+    if (norm_(keys[k]) === norm_(source)) return DriveApp.getFileById(CONFIG.SERIES[keys[k]].docId);
+  }
   var files = DriveApp.getFolderById(CONFIG.DRIVE_FOLDER_ID).getFilesByType(MimeType.GOOGLE_DOCS);
   while (files.hasNext()) {
     var f = files.next();
     if (norm_(f.getName()) === norm_(source)) return f;
   }
   return null;
+}
+
+function seriesTitle_(source, file) {
+  var keys = Object.keys(CONFIG.SERIES);
+  for (var k = 0; k < keys.length; k++) if (norm_(keys[k]) === norm_(source)) return CONFIG.SERIES[keys[k]].title;
+  return file.getName();
 }
 
 /** Returns [{subject, html}] — one per top-level tab. Cached briefly. */
@@ -216,23 +237,63 @@ function getEmails_(file) {
   var hit = cache.get(key);
   if (hit) return JSON.parse(hit);
 
+  var emailRe = /^\s*email\s*\d+/i;
   var tabs = DocumentApp.openById(file.getId()).getTabs();
-  var emails = tabs.map(function (tab) {
-    var html = bodyToHtml_(tab.asDocumentTab().getBody());
-    if (!html.trim()) throw new Error('Tab "' + tab.getTitle() + '" in "' + file.getName() + '" is empty');
-    return { subject: tab.getTitle(), html: html };
+  var emails = [];
+
+  // Preferred layout: one tab per email, tab titled "Email 1", "Email 2"...
+  // (any other tab, e.g. "Instructions", is ignored).
+  tabs.forEach(function (tab) {
+    if (emailRe.test(tab.getTitle())) {
+      var body = tab.asDocumentTab().getBody();
+      emails.push(parseEmail_(body, 0, body.getNumChildren()));
+    }
   });
+
+  // Fallback: everything in one tab, each email starting at a heading "Email N".
+  if (!emails.length) {
+    tabs.forEach(function (tab) {
+      var body = tab.asDocumentTab().getBody(), n = body.getNumChildren(), starts = [];
+      for (var i = 0; i < n; i++) {
+        var c = body.getChild(i);
+        if (c.getType() === DocumentApp.ElementType.PARAGRAPH && emailRe.test(c.asParagraph().getText())) starts.push(i);
+      }
+      starts.forEach(function (from, j) {
+        emails.push(parseEmail_(body, from + 1, j + 1 < starts.length ? starts[j + 1] : n));
+      });
+    });
+  }
+  if (!emails.length) throw new Error('No "Email N" tabs found in "' + file.getName() + '"');
   try { cache.put(key, JSON.stringify(emails), 600); } catch (ignored) { /* >100KB */ }
   return emails;
 }
 
-function bodyToHtml_(body) {
-  var out = [], listTag = null;
+/** Optional first line "Subject: ..." sets the subject; otherwise sendNext_ builds a default. */
+function parseEmail_(body, from, to) {
+  var subject = '';
+  for (var i = from; i < to; i++) {
+    var el = body.getChild(i);
+    if (el.getType() !== DocumentApp.ElementType.PARAGRAPH) break;
+    var t = el.asParagraph().getText().trim();
+    if (!t) continue;
+    var m = t.match(/^subject:\s*(.+)$/i);
+    if (m) { subject = m[1]; from = i + 1; }
+    break;
+  }
+  return { subject: subject, html: bodyToHtml_(body, from, to) };
+}
+
+/** Returns '' when the range has no text (e.g. an email that isn't written yet). */
+function bodyToHtml_(body, from, to) {
+  var out = [], listTag = null, hasText = false;
   function closeList() { if (listTag) { out.push('</' + listTag + '>'); listTag = null; } }
 
-  for (var i = 0; i < body.getNumChildren(); i++) {
+  for (var i = from; i < to; i++) {
     var el = body.getChild(i);
     var type = el.getType();
+    if (type === DocumentApp.ElementType.LIST_ITEM || type === DocumentApp.ElementType.PARAGRAPH) {
+      if (el.asText().getText().trim()) hasText = true;
+    }
 
     if (type === DocumentApp.ElementType.LIST_ITEM) {
       var item = el.asListItem();
@@ -255,7 +316,8 @@ function bodyToHtml_(body) {
     // Tables and images are not supported.
   }
   closeList();
-  return out.join('\n');
+  if (!hasText) return '';
+  return out.join('\n').replace(/^(<p>&nbsp;<\/p>\n?)+/, '').replace(/(\n?<p>&nbsp;<\/p>)+$/, '');
 }
 
 function inlineHtml_(text) {
