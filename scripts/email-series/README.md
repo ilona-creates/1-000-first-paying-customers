@@ -13,8 +13,11 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
 - An email with no text yet is skipped quietly (Last Error says so) and sent once you write it.
 - `{{name}}` is replaced with the subscriber's name (subject and body).
 - Supported: headings, bold, italic, underline, links, lists, horizontal rules. Not images or tables.
-- Schedule: 9AM GMT, Monday-Friday (`appsscript.json` sets the time zone; `WEEKDAYS_ONLY` in `CONFIG`).
-  Email #1 is sent immediately at signup, even on a weekend.
+- Schedule: 9AM GMT, every day (`appsscript.json` sets the time zone; set `WEEKDAYS_ONLY: true` in `CONFIG` to pause Sat/Sun).
+  Email #1 is sent immediately at signup.
+- Subject: put `Subject:` followed by the subject (same line or next line). A `Body:` label line is ignored.
+- **Daily report:** after each daily run the script emails the account owner (or `CONFIG.REPORT_TO`) who was emailed today
+  (name, series, email number) and any issues: errors, missed sends, unwritten emails, low quota.
 
 ## Setup (one time, ~5 min)
 1. Open the Sheet → **Extensions → Apps Script**. Delete the starter code, paste in `Code.gs`. In Project Settings, tick
@@ -30,7 +33,8 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
    To test day 2 without waiting, run `sendDailyEmails` after clearing that row's **Last Sent** cell.
 
 ## Sheet columns
-`Sign-up time, Name, Email` (existing) plus columns the script adds automatically: `Source`,
+`Sign-up date and time, Name, Email`, plus the two status columns already in your Sheet (the script keeps them updated:
+"current series and next number" and "series already received"), plus columns it adds: `Source`,
 `ID, Series, Status, Emails Sent, Total Emails, Last Sent, Last Error`.
 
 **Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, or `Error` (signup with no matching Doc).

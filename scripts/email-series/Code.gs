@@ -31,11 +31,14 @@ var CONFIG = {
     'niche-for-growth': { docId: '1c-F5Kp3-vbU0ecnF0hbZX-M-tRF_D9VRJuDGdIajCls', title: 'Niche Starter Framework' }
   },
   SEND_HOUR: 9,            // daily send time in the script time zone (appsscript.json sets GMT)
-  WEEKDAYS_ONLY: true,     // no sends Saturday/Sunday (email #1 on signup is still immediate)
+  WEEKDAYS_ONLY: false,    // Doc instructions say Monday-Sunday; set true to pause Sat/Sun
+  REPORT_TO: [],           // daily report recipients; empty = the account that owns this script
   MAX_RUNTIME_MS: 5 * 60 * 1000
 };
 
-var HEADERS = ['Sign-up time', 'Name', 'Email', 'Source', 'ID', 'Series', 'Status',
+var HDR_CURRENT = 'Name of current series and the next number to be sent';
+var HDR_DONE = "Names of whole series' already received";
+var HEADERS = ['Sign-up date and time', 'Name', 'Email', HDR_CURRENT, HDR_DONE, 'Source', 'ID', 'Series', 'Status',
                'Emails Sent', 'Total Emails', 'Last Sent', 'Last Error'];
 
 var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed' };
@@ -76,12 +79,13 @@ function doPost(e) {
     }
 
     var record = {};
-    record['Sign-up time'] = new Date();
+    record['Sign-up date and time'] = new Date();
     record['Name'] = sanitizeCell_(name);
     record['Email'] = sanitizeCell_(email);
     record['Source'] = sanitizeCell_(source);
     record['ID'] = id;
-    record['Series'] = series ? series.getName() : '';
+    record['Series'] = series ? seriesTitle_(source, series) : '';
+    if (series && total) record[HDR_CURRENT] = record['Series'] + ' - next: 1 of ' + total;
     record['Status'] = status;
     record['Emails Sent'] = 0;
     record['Total Emails'] = total;
@@ -152,6 +156,7 @@ function sendDailyEmails() {
   } finally {
     lock.releaseLock();
   }
+  try { sendDailyReport_(); } catch (ex) { console.error('Report failed: ' + ex); }
 }
 
 /** Run once from the editor to schedule the daily send. */
@@ -197,6 +202,9 @@ function sendNext_(sheet, cols, sub, series) {
       'Last Error': '',
       'Status': sent >= emails.length ? STATUS.COMPLETED : STATUS.ACTIVE
     };
+    var title = seriesTitle_(sub.source, series);
+    updates[HDR_CURRENT] = sent >= emails.length ? 'Finished ' + title : title + ' - next: ' + (sent + 1) + ' of ' + emails.length;
+    if (sent >= emails.length) updates[HDR_DONE] = title;
     writeRecord_(sheet, cols, sub.rowNum, updates);
   } catch (ex) {
     setError_(sheet, cols, sub.rowNum, String(ex));
@@ -206,6 +214,63 @@ function sendNext_(sheet, cols, sub, series) {
 function setError_(sheet, cols, rowNum, message) {
   // Keep the subscriber Active so a fixed Doc / restored quota resumes automatically.
   writeRecord_(sheet, cols, rowNum, { 'Last Error': message });
+}
+
+/* --------------------------------- Report --------------------------------- */
+
+function sendDailyReport_() {
+  var sheet = getSheet_(), cols = getColumns_(sheet);
+  var rows = readRows_(sheet, cols), today = dayKey_(new Date());
+  var sentToday = rows.filter(function (r) { return r.lastSent && dayKey_(r.lastSent) === today; });
+  var report = buildReport_(today, sentToday, collectIssues_(rows, today));
+  var to = CONFIG.REPORT_TO.length ? CONFIG.REPORT_TO.join(',') : Session.getEffectiveUser().getEmail();
+  MailApp.sendEmail({ to: to, subject: report.subject, body: report.text, htmlBody: report.html, name: CONFIG.SENDER_NAME });
+}
+
+function collectIssues_(rows, today) {
+  var issues = [];
+  rows.forEach(function (r) {
+    if (r.lastError) issues.push(r.name + ' <' + r.email + '>: ' + r.lastError);
+    else if (r.status === STATUS.ACTIVE && !(r.lastSent && dayKey_(r.lastSent) === today) && r.sent > 0) {
+      issues.push(r.name + ' <' + r.email + '>: was due an email today but none was sent (quota or time limit?)');
+    }
+  });
+  Object.keys(CONFIG.SERIES).forEach(function (src) {
+    try {
+      var file = findSeries_(src), emails = getEmails_(file);
+      var empty = [];
+      emails.forEach(function (m, i) { if (!m.html) empty.push(i + 1); });
+      if (empty.length) issues.push('Series "' + seriesTitle_(src, file) + '": Email ' + empty.join(', ') + ' have no content yet');
+    } catch (ex) {
+      issues.push('Series "' + src + '": ' + ex);
+    }
+  });
+  var quota = MailApp.getRemainingDailyQuota();
+  if (quota < 20) issues.push('Only ' + quota + ' emails left in today\'s sending quota');
+  return issues;
+}
+
+/** Pure: rows = subscribers emailed today. */
+function buildReport_(day, rows, issues) {
+  var subject = 'Daily email report ' + day + ': ' + rows.length + ' sent, ' + issues.length + ' issue(s)';
+  var lines = ['Emails sent today: ' + rows.length, ''];
+  var html = '<h2 style="margin:0 0 8px">Daily email report, ' + esc_(day) + '</h2><p><strong>Emails sent today: ' + rows.length + '</strong></p>';
+  if (rows.length) {
+    html += '<table cellpadding="6" style="border-collapse:collapse;border:1px solid #ccc"><tr style="background:#f2f2f2"><th align="left">Name</th><th align="left">Series</th><th align="left">Sent today</th></tr>';
+    rows.forEach(function (r) {
+      var n = 'Email ' + r.sent + (r.total ? ' of ' + r.total : '');
+      lines.push(r.name + ' | ' + r.series + ' | ' + n);
+      html += '<tr><td>' + esc_(r.name) + '</td><td>' + esc_(r.series) + '</td><td>' + esc_(n) + '</td></tr>';
+    });
+    html += '</table>';
+  } else { lines.push('(nobody was emailed today)'); html += '<p>Nobody was emailed today.</p>'; }
+  lines.push('', 'Issues to address: ' + (issues.length || 'none'));
+  html += '<h3>Issues to address</h3>';
+  if (issues.length) {
+    html += '<ul>' + issues.map(function (i) { return '<li>' + esc_(i) + '</li>'; }).join('') + '</ul>';
+    issues.forEach(function (i) { lines.push('- ' + i); });
+  } else html += '<p>None.</p>';
+  return { subject: subject, text: lines.join('\n'), html: html };
 }
 
 /* ------------------------------ Drive / Docs ------------------------------ */
@@ -268,16 +333,21 @@ function getEmails_(file) {
   return emails;
 }
 
-/** Optional first line "Subject: ..." sets the subject; otherwise sendNext_ builds a default. */
+/**
+ * Optional leading labels: "Subject: text" (or "Subject:" then the subject on the next line),
+ * and a "Body:" label line. Without a subject, sendNext_ builds a default.
+ */
 function parseEmail_(body, from, to) {
-  var subject = '';
+  var subject = '', wantSubject = false;
   for (var i = from; i < to; i++) {
     var el = body.getChild(i);
     if (el.getType() !== DocumentApp.ElementType.PARAGRAPH) break;
     var t = el.asParagraph().getText().trim();
-    if (!t) continue;
-    var m = t.match(/^subject:\s*(.+)$/i);
-    if (m) { subject = m[1]; from = i + 1; }
+    if (!t) { from = i + 1; continue; }
+    if (wantSubject) { subject = t; wantSubject = false; from = i + 1; continue; }
+    var m = t.match(/^subject:\s*(.*)$/i);
+    if (m) { if (m[1]) subject = m[1]; else wantSubject = true; from = i + 1; continue; }
+    if (/^body:?$/i.test(t)) { from = i + 1; continue; }
     break;
   }
   return { subject: subject, html: bodyToHtml_(body, from, to) };
@@ -379,6 +449,9 @@ function readRows_(sheet, cols) {
       email: email,
       source: String(get(row, 'Source') || '').trim(),
       id: String(get(row, 'ID') || ''),
+      series: String(get(row, 'Series') || ''),
+      lastError: String(get(row, 'Last Error') || ''),
+      total: Number(get(row, 'Total Emails')) || 0,
       status: String(get(row, 'Status') || '').trim(),
       sent: Number(get(row, 'Emails Sent')) || 0,
       lastSent: lastSent instanceof Date ? lastSent : null
