@@ -39,7 +39,7 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
    To test the report, run `sendDailyReport`.
 
 ## Sheet columns
-`Sign-up date and time` (Column A, always GMT, like `30-September-2026 05:34 GMT`, the only date/time column), `Name`, `Email`, the three status columns
+`Sign-up date and time (GMT)` (Column A, always GMT, like `30-September-2026 05:34 GMT`, the only date/time column), `Name`, `Email`, the three status columns
 ("current series and next number", "series already full sent", "replied to"), and the columns the script adds:
 `Source, ID, Series, Status, Total emails sent to date, Last Error`.
 

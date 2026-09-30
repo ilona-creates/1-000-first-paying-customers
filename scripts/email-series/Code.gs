@@ -46,8 +46,10 @@ var CONFIG = {
 var HDR_CURRENT = 'Name of current series and the next number to be sent';
 var HDR_DONE = 'Names of whole serieses already full sent';
 var HDR_REPLIED = 'If they have replied in email, what series name and subject line triggered the reply';
+var HDR_DATE = 'Sign-up date and time (GMT)';   // Column A, the only date/time column
+var HDR_DATE_OLD = 'Sign-up date and time';
 var HDR_SENT = 'Total emails sent to date';
-var HEADERS = ['Sign-up date and time', 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'Source', 'ID', 'Series', 'Status',
+var HEADERS = [HDR_DATE, 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'Source', 'ID', 'Series', 'Status',
                HDR_SENT, 'Last Error'];
 
 var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed', BOUNCED: 'Bounced' };
@@ -96,7 +98,7 @@ function doPost(e) {
     }
 
     var record = {};
-    record['Sign-up date and time'] = gmtStamp_(new Date());   // the only date/time column, always GMT
+    record[HDR_DATE] = gmtStamp_(new Date());   // the only date/time column, always GMT
     record['Name'] = sanitizeCell_(name);
     record['Email'] = sanitizeCell_(email);
     record['Source'] = sanitizeCell_(source);
@@ -665,14 +667,24 @@ function migrateSheet_(sheet) {
   var iLast = hdr.indexOf('Last Sent'), iTotal = hdr.indexOf('Total Emails'), iId = hdr.indexOf('ID');
   var lastRow = sheet.getLastRow();
 
-  // Column A: turn real date cells into the text format (30-September-2026 05:34 GMT).
-  var iDate = hdr.indexOf('Sign-up date and time');
+  // Column A: the header is "Sign-up date and time (GMT)". Rename the older header, or merge a stray duplicate column into it.
+  var iDate = hdr.indexOf(HDR_DATE), iOld = hdr.indexOf(HDR_DATE_OLD);
+  if (iDate < 0 && iOld >= 0) { sheet.getRange(1, iOld + 1).setValue(HDR_DATE); iDate = iOld; iOld = -1; }
+  if (iDate >= 0 && iOld >= 0 && lastRow >= 2) {
+    var main = sheet.getRange(2, iDate + 1, lastRow - 1, 1).getValues();
+    var stray = sheet.getRange(2, iOld + 1, lastRow - 1, 1).getValues();
+    for (var r = 0; r < main.length; r++) {
+      if (main[r][0] === '' && stray[r][0] !== '') sheet.getRange(r + 2, iDate + 1).setValue(stray[r][0]);
+    }
+  }
+  // Turn real date cells into the text format (30-September-2026 05:34 GMT).
   if (iDate >= 0 && lastRow >= 2) {
     var dates = sheet.getRange(2, iDate + 1, lastRow - 1, 1).getValues();
     for (var d = 0; d < dates.length; d++) {
       if (dates[d][0] instanceof Date) sheet.getRange(d + 2, iDate + 1).setValue(gmtStamp_(dates[d][0]));
     }
   }
+
   if (iLast >= 0 && iId >= 0 && lastRow >= 2) {
     var ids = sheet.getRange(2, iId + 1, lastRow - 1, 1).getValues();
     var vals = sheet.getRange(2, iLast + 1, lastRow - 1, 1).getValues();
@@ -682,7 +694,7 @@ function migrateSheet_(sheet) {
     }
     if (Object.keys(props).length) PropertiesService.getScriptProperties().setProperties(props);
   }
-  [iLast, iTotal].filter(function (i) { return i >= 0; }).sort(function (a, b) { return b - a; })
+  [iLast, iTotal, iOld].filter(function (i) { return i >= 0; }).sort(function (a, b) { return b - a; })
     .forEach(function (i) { sheet.deleteColumn(i + 1); });
 }
 
@@ -718,7 +730,7 @@ function readRows_(sheet, cols) {
       name: String(get(row, 'Name') || '').trim(),
       email: email,
       source: String(get(row, 'Source') || '').trim(),
-      signup: parseStamp_(get(row, 'Sign-up date and time')),
+      signup: parseStamp_(get(row, HDR_DATE)),
       replied: String(get(row, HDR_REPLIED) || ''),
       id: id,
       series: String(get(row, 'Series') || ''),
