@@ -3,7 +3,7 @@
  *
  * Flow
  *  1. The landing-page form POSTs name/email/source to this script (doPost).
- *  2. A row is added to the Sheet and email #1 is sent immediately.
+ *  2. Bots are filtered out; otherwise a row is added and email #1 is sent immediately.
  *  3. Time triggers (sendDailyEmails, at SEND_HOURS) send the next email to every
  *     active subscriber who hasn't received one today.
  *  4. Progress is written back to the Sheet (series/next number, status, last sent...).
@@ -37,7 +37,10 @@ var CONFIG = {
   REPORT_TIMEZONE: 'Asia/Bangkok',   // ...in ICT
   WEEKDAYS_ONLY: false,    // Doc instructions say Monday-Sunday; set true to pause Sat/Sun
   REPORT_TO: ['ilona@ilonamelnychuk.com'],   // empty = the account that owns this script
-  MAX_RUNTIME_MS: 5 * 60 * 1000
+  MAX_RUNTIME_MS: 5 * 60 * 1000,
+  // Bot protection
+  MAX_SIGNUPS_PER_HOUR: 30,   // more than this in an hour are ignored (protects your email quota)
+  MIN_FILL_MS: 2000           // forms submitted faster than this are treated as bots
 };
 
 var HDR_CURRENT = 'Name of current series and the next number to be sent';
@@ -56,31 +59,39 @@ function doPost(e) {
   var email = clean_(p.email).toLowerCase();
   var source = clean_(p.source);
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json_({ result: 'error', message: 'Invalid email' });
-  }
+  // Bot checks. Bots get a normal-looking success reply so they learn nothing.
+  if (p.website) return blocked_('honeypot');                                   // hidden field must stay empty
+  if (!(Number(p.elapsed) >= CONFIG.MIN_FILL_MS)) return blocked_('too fast');  // real people take a few seconds
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json_({ result: 'error', message: 'Invalid email' });
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
+    var cache = CacheService.getScriptCache();
+    var hourKey = 'signups:' + Utilities.formatDate(new Date(), 'GMT', 'yyyyMMddHH');
+    var count = Number(cache.get(hourKey) || 0);
+    if (count >= CONFIG.MAX_SIGNUPS_PER_HOUR) return blocked_('hourly limit');
+    cache.put(hourKey, String(count + 1), 3700);
+
     var sheet = getSheet_();
     var cols = getColumns_(sheet);
     var rows = readRows_(sheet, cols);
+    var series = findSeries_(source);
 
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].email.toLowerCase() === email && norm_(rows[i].source) === norm_(source)) {
-        return json_({ result: 'success', duplicate: true });
-      }
+      var r = rows[i];
+      if (r.email.toLowerCase() !== email || norm_(r.source) !== norm_(source)) continue;
+      // Already on this series: ignore. Unsubscribed / Error rows fall through and sign up again as a new row.
+      if (r.status === STATUS.ACTIVE || r.status === STATUS.COMPLETED) return json_({ result: 'success', duplicate: true });
     }
 
     var id = Utilities.getUuid();
-    var series = findSeries_(source);
     var status = series ? STATUS.ACTIVE : STATUS.ERROR;
     var total = 0, err = '';
     if (series) {
       try { total = getEmails_(series).length; } catch (ex) { err = String(ex); status = STATUS.ERROR; }
     } else {
-      err = 'No Google Doc named "' + source + '" found in the Drive folder';
+      err = 'No Google Doc found for source "' + source + '"';
     }
 
     var record = {};
@@ -90,17 +101,22 @@ function doPost(e) {
     record['Source'] = sanitizeCell_(source);
     record['ID'] = id;
     record['Series'] = series ? seriesTitle_(source, series) : '';
-    if (series && total) record[HDR_CURRENT] = record['Series'] + ' - next: 1 of ' + total;
+    if (status === STATUS.ACTIVE && total) record[HDR_CURRENT] = record['Series'] + ' - next: 1 of ' + total;
     record['Status'] = status;
     record['Emails Sent'] = 0;
     record['Total Emails'] = total;
     record['Last Error'] = err;
     var rowNum = appendRecord_(sheet, cols, record);
 
-    // Send email #1 right away; the daily trigger handles the rest.
+    // Send email #1 right away. If today's email quota is used up, the signup is still saved and
+    // the next send slot sends it (sendDailyEmails picks up anyone with no email sent yet).
     if (status === STATUS.ACTIVE) {
-      var sub = readRows_(sheet, cols).filter(function (r) { return r.rowNum === rowNum; })[0];
-      sendNext_(sheet, cols, sub, series);
+      if (MailApp.getRemainingDailyQuota() > 0) {
+        var sub = readRows_(sheet, cols).filter(function (r) { return r.rowNum === rowNum; })[0];
+        sendNext_(sheet, cols, sub, series);
+      } else {
+        writeRecord_(sheet, cols, rowNum, { 'Last Error': 'Waiting for daily email quota; Email 1 will go out at the next send slot' });
+      }
     }
     return json_({ result: 'success' });
   } finally {
@@ -111,7 +127,7 @@ function doPost(e) {
 /** Unsubscribe link target: <web app url>?unsubscribe=<ID> */
 function doGet(e) {
   var id = e && e.parameter && e.parameter.unsubscribe;
-  var msg = 'Invalid unsubscribe link.';
+  var msg = 'This link is not valid.';
   if (id) {
     var lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -127,7 +143,18 @@ function doGet(e) {
       lock.releaseLock();
     }
   }
-  return HtmlService.createHtmlOutput('<p style="font-family:sans-serif;font-size:18px;padding:40px">' + msg + '</p>');
+  return HtmlService.createHtmlOutput('<p style="font-family:sans-serif;font-size:18px;padding:40px">' + esc_(msg) + '</p>');
+}
+
+/** Silently drop a suspected bot and count it for the daily report. */
+function blocked_(reason) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var key = 'blocked:' + dayKey_(new Date());
+    props.setProperty(key, String((Number(props.getProperty(key)) || 0) + 1));
+    console.warn('Signup blocked: ' + reason);
+  } catch (ignored) {}
+  return json_({ result: 'success' });
 }
 
 /* ------------------------------ Daily sending ------------------------------ */
@@ -238,7 +265,11 @@ function sendDailyReport() {
     try { replies = checkReplies_(sheet, cols, rows); } catch (ex) { console.error('Reply check failed: ' + ex); }
     var since = Date.now() - 24 * 3600 * 1000;
     var recent = rows.filter(function (r) { return r.lastSent && r.lastSent.getTime() >= since; });
-    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows), replies);
+    var props = PropertiesService.getScriptProperties();
+    var blocked = (Number(props.getProperty('blocked:' + dayKey_(new Date()))) || 0) +
+                  (Number(props.getProperty('blocked:' + dayKey_(new Date(Date.now() - 24 * 3600 * 1000)))) || 0);
+    var notes = ['Suspected bot signups blocked (last 2 days): ' + blocked];
+    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows), replies, notes);
     var to = CONFIG.REPORT_TO.length ? CONFIG.REPORT_TO.join(',') : Session.getEffectiveUser().getEmail();
     MailApp.sendEmail({ to: to, subject: report.subject, body: report.text, htmlBody: report.html, name: CONFIG.SENDER_NAME });
   } finally {
@@ -296,8 +327,9 @@ function collectIssues_(rows) {
 }
 
 /** Pure: rows = subscribers emailed in the last 24 hours; replies = [{name, email, label}]. */
-function buildReport_(day, rows, issues, replies) {
+function buildReport_(day, rows, issues, replies, notes) {
   replies = replies || [];
+  notes = notes || [];
   var subject = 'Email series report ' + day + ': ' + rows.length + ' sent, ' + issues.length + ' issue(s)';
   var lines = ['Emails sent in the last 24 hours: ' + rows.length, ''];
   var html = '<h2 style="margin:0 0 8px">Email series report, ' + esc_(day) + '</h2><p><strong>Emails sent in the last 24 hours: ' + rows.length + '</strong></p>';
@@ -322,6 +354,10 @@ function buildReport_(day, rows, issues, replies) {
     html += '<ul>' + issues.map(function (i) { return '<li>' + esc_(i) + '</li>'; }).join('') + '</ul>';
     issues.forEach(function (i) { lines.push('- ' + i); });
   } else html += '<p>None.</p>';
+  if (notes.length) {
+    lines.push('', 'Also: ' + notes.join('; '));
+    html += '<p style="color:#666;font-size:13px">' + notes.map(esc_).join('<br>') + '</p>';
+  }
   return { subject: subject, text: lines.join('\n'), html: html };
 }
 
