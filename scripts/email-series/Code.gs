@@ -529,10 +529,7 @@ function cleanBlockHtml_(h) {
 
 /** Plain text of an HTML fragment (entities decoded). */
 function htmlText_(h) {
-  return h.replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&#(\d+);/g, function (a, n) { return String.fromCharCode(+n); }).replace(/&amp;/g, '&')
-    .replace(/ /g, ' ').trim();
+  return decodeEntities_(h.replace(/<[^>]+>/g, '')).replace(/\u00a0/g, ' ').trim();
 }
 
 /** Fallback: rebuild each email from the Doc's text and basic styling (bold, italic, links, lists). */
@@ -770,10 +767,21 @@ function fill_(str, vars, isHtml) {
 }
 
 function htmlToText_(html) {
-  return html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|h\d|li)>/gi, '\n')
+  return decodeEntities_(html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|h\d|li)>/gi, '\n')
     .replace(/<a href="([^"]*)">([^<]*)<\/a>/gi, '$2 ($1)')
-    .replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+    .replace(/<[^>]+>/g, ''));
+}
+
+var NAMED_ENTITIES = { nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', pound: '£', euro: '€', yen: '¥', cent: '¢', copy: '©', reg: '®',
+  trade: '™', deg: '°', middot: '·', bull: '•', hellip: '…', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
+  laquo: '«', raquo: '»', eacute: 'é', egrave: 'è', agrave: 'à', aacute: 'á', uuml: 'ü', ouml: 'ö', auml: 'ä', ntilde: 'ñ', ccedil: 'ç' };
+/** Decodes named and numeric HTML entities (&pound; &#39; &#x2019; ...). &amp; is decoded last. */
+function decodeEntities_(t) {
+  return String(t)
+    .replace(/&#x([0-9a-f]+);/gi, function (a, n) { return String.fromCharCode(parseInt(n, 16)); })
+    .replace(/&#(\d+);/g, function (a, n) { return String.fromCharCode(+n); })
+    .replace(/&([a-z]+);/gi, function (a, n) { return NAMED_ENTITIES.hasOwnProperty(n.toLowerCase()) && n !== 'amp' ? NAMED_ENTITIES[n.toLowerCase()] : a; })
+    .replace(/&amp;/g, '&');
 }
 
 function esc_(s) {
