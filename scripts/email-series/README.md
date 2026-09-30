@@ -20,7 +20,8 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
   Email #1 is sent immediately at signup.
 - Subject: put `Subject:` followed by the subject (same line or next line). A `Body:` label line is ignored.
 - **Daily report** at 09:00 ICT to `REPORT_TO` (ilona@ilonamelnychuk.com): who was emailed in the last 24 hours
-  (name, series, email number), new replies, and issues (errors, missed sends, unwritten emails, low quota).
+  (name, series, email number), new replies, bounced addresses, and issues (errors, missed sends, unwritten emails, low quota).
+  The report shows names and Sheet row numbers only, never subscribers' email addresses. Bounced addresses are marked `Bounced` and no longer emailed.
 
 ## Setup (one time, ~5 min)
 1. Open the Sheet → **Extensions → Apps Script**. Delete the starter code, paste in `Code.gs`. In Project Settings, tick
@@ -40,7 +41,7 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
 "current series and next number", "series already full sent" and "replied to"), plus columns it adds: `Source`,
 `ID, Series, Status, Emails Sent, Total Emails, Last Sent, Last Error`.
 
-**Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, or `Error` (signup with no matching Doc).
+**Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, `Bounced`, or `Error` (signup with no matching Doc).
 Temporary problems (quota hit, empty tab) show in **Last Error** and the subscriber stays `Active`,
 retrying on the next daily run. Edit a row's **Emails Sent** to skip/resend an email; set Status to
 `Paused` (any value other than `Active`) to stop sending.

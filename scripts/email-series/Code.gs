@@ -49,7 +49,7 @@ var HDR_REPLIED = 'If they have replied in email, what series name and subject l
 var HEADERS = ['Sign-up date and time', 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'Source', 'ID', 'Series', 'Status',
                'Emails Sent', 'Total Emails', 'Last Sent', 'Last Error'];
 
-var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed' };
+var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed', BOUNCED: 'Bounced' };
 
 /* ------------------------------ Web endpoints ------------------------------ */
 
@@ -263,13 +263,17 @@ function sendDailyReport() {
     var rows = readRows_(sheet, cols);
     var replies = [];
     try { replies = checkReplies_(sheet, cols, rows); } catch (ex) { console.error('Reply check failed: ' + ex); }
+    var bounced = [];
+    try { bounced = checkBounces_(sheet, cols, rows); } catch (ex) { console.error('Bounce check failed: ' + ex); }
     var since = Date.now() - 24 * 3600 * 1000;
     var recent = rows.filter(function (r) { return r.lastSent && r.lastSent.getTime() >= since; });
     var props = PropertiesService.getScriptProperties();
     var blocked = (Number(props.getProperty('blocked:' + dayKey_(new Date()))) || 0) +
                   (Number(props.getProperty('blocked:' + dayKey_(new Date(Date.now() - 24 * 3600 * 1000)))) || 0);
     var notes = ['Suspected bot signups blocked (last 2 days): ' + blocked];
-    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows), replies, notes);
+    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows).concat(bounced.map(function (r) {
+      return who_(r) + ': email bounced, so the address may be mistyped. Sending to them has stopped.';
+    })), replies, notes);
     var to = CONFIG.REPORT_TO.length ? CONFIG.REPORT_TO.join(',') : Session.getEffectiveUser().getEmail();
     MailApp.sendEmail({ to: to, subject: report.subject, body: report.text, htmlBody: report.html, name: CONFIG.SENDER_NAME });
   } finally {
@@ -297,18 +301,44 @@ function checkReplies_(sheet, cols, rows) {
     });
     if (added.length) {
       sheet.getRange(r.rowNum, cols[HDR_REPLIED]).setValue((known ? known + '; ' : '') + added.join('; '));
-      added.forEach(function (label) { found.push({ name: r.name, email: r.email, label: label }); });
+      added.forEach(function (label) { found.push({ who: who_(r), label: label }); });
     }
   });
   return found;
 }
 
+/**
+ * Finds delivery failures in Gmail for subscribers we emailed and marks them Bounced (sending stops).
+ * Returns the newly bounced subscribers.
+ */
+function checkBounces_(sheet, cols, rows) {
+  var bodies = [];
+  GmailApp.search('from:(mailer-daemon OR postmaster) subject:(failure OR undeliverable OR returned) newer_than:2d', 0, 50)
+    .forEach(function (t) {
+      t.getMessages().forEach(function (m) { bodies.push(m.getPlainBody().toLowerCase()); });
+    });
+  var found = [];
+  if (!bodies.length) return found;
+  rows.forEach(function (r) {
+    if ((r.status !== STATUS.ACTIVE && r.status !== STATUS.COMPLETED) || !r.sent) return;
+    var addr = r.email.toLowerCase();
+    if (bodies.some(function (b) { return b.indexOf(addr) >= 0; })) {
+      writeRecord_(sheet, cols, r.rowNum, { 'Status': STATUS.BOUNCED, 'Last Error': 'Email bounced: address not found or cannot receive mail' });
+      found.push(r);
+    }
+  });
+  return found;
+}
+
+/** Report label for a subscriber: name and Sheet row, never the email address. */
+function who_(r) { return (r.name || '(no name)') + ' (row ' + r.rowNum + ')'; }
+
 function collectIssues_(rows) {
   var issues = [], stale = Date.now() - 36 * 3600 * 1000;
   rows.forEach(function (r) {
-    if (r.lastError) issues.push(r.name + ' <' + r.email + '>: ' + r.lastError);
+    if (r.lastError && r.status !== STATUS.BOUNCED) issues.push(who_(r) + ': ' + r.lastError);
     else if (r.status === STATUS.ACTIVE && r.sent > 0 && r.lastSent && r.lastSent.getTime() < stale) {
-      issues.push(r.name + ' <' + r.email + '>: no email sent for over 36 hours (quota or time limit?)');
+      issues.push(who_(r) + ': no email sent for over 36 hours (quota or time limit?)');
     }
   });
   Object.keys(CONFIG.SERIES).forEach(function (src) {
@@ -316,7 +346,7 @@ function collectIssues_(rows) {
       var file = findSeries_(src), emails = getEmails_(file);
       var empty = [];
       emails.forEach(function (m, i) { if (!m.html) empty.push(i + 1); });
-      if (empty.length) issues.push('Series "' + seriesTitle_(src, file) + '": Email ' + empty.join(', ') + ' have no content yet');
+      if (empty.length) issues.push('Series "' + seriesTitle_(src, file) + '": ' + (empty.length > 1 ? 'Emails ' : 'Email ') + empty.join(', ') + (empty.length > 1 ? ' have' : ' has') + ' no content yet');
     } catch (ex) {
       issues.push('Series "' + src + '": ' + ex);
     }
@@ -326,7 +356,7 @@ function collectIssues_(rows) {
   return issues;
 }
 
-/** Pure: rows = subscribers emailed in the last 24 hours; replies = [{name, email, label}]. */
+/** Pure: rows = subscribers emailed in the last 24 hours; replies = [{who, label}]. */
 function buildReport_(day, rows, issues, replies, notes) {
   replies = replies || [];
   notes = notes || [];
@@ -337,16 +367,16 @@ function buildReport_(day, rows, issues, replies, notes) {
     html += '<table cellpadding="6" style="border-collapse:collapse;border:1px solid #ccc"><tr style="background:#f2f2f2"><th align="left">Name</th><th align="left">Series</th><th align="left">Sent</th></tr>';
     rows.forEach(function (r) {
       var n = 'Email ' + r.sent + (r.total ? ' of ' + r.total : '');
-      lines.push(r.name + ' | ' + r.series + ' | ' + n);
-      html += '<tr><td>' + esc_(r.name) + '</td><td>' + esc_(r.series) + '</td><td>' + esc_(n) + '</td></tr>';
+      lines.push(who_(r) + ' | ' + r.series + ' | ' + n);
+      html += '<tr><td>' + esc_(who_(r)) + '</td><td>' + esc_(r.series) + '</td><td>' + esc_(n) + '</td></tr>';
     });
     html += '</table>';
   } else { lines.push('(nobody was emailed)'); html += '<p>Nobody was emailed.</p>'; }
   lines.push('', 'New replies: ' + (replies.length || 'none'));
   html += '<h3>New replies</h3>';
   if (replies.length) {
-    html += '<ul>' + replies.map(function (p) { return '<li>' + esc_(p.name) + ' &lt;' + esc_(p.email) + '&gt;: ' + esc_(p.label) + '</li>'; }).join('') + '</ul>';
-    replies.forEach(function (p) { lines.push('- ' + p.name + ' <' + p.email + '>: ' + p.label); });
+    html += '<ul>' + replies.map(function (p) { return '<li>' + esc_(p.who) + ': ' + esc_(p.label) + '</li>'; }).join('') + '</ul>';
+    replies.forEach(function (p) { lines.push('- ' + p.who + ': ' + p.label); });
   } else html += '<p>None.</p>';
   lines.push('', 'Issues to address: ' + (issues.length || 'none'));
   html += '<h3>Issues to address</h3>';
