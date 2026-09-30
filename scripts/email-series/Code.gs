@@ -1,22 +1,23 @@
 /**
- * Email series system — signup -> Google Sheet -> one email per day from Google Docs.
+ * Email series system: signup -> Google Sheet -> one email per day from Google Docs.
  *
  * Flow
  *  1. The landing-page form POSTs name/email/source to this script (doPost).
  *  2. A row is added to the Sheet and email #1 is sent immediately.
- *  3. A daily time trigger (sendDailyEmails) sends the next email to every
+ *  3. Time triggers (sendDailyEmails, at SEND_HOURS) send the next email to every
  *     active subscriber who hasn't received one today.
- *  4. Progress is written back to the Sheet (Status, Emails Sent, Last Sent...).
+ *  4. Progress is written back to the Sheet (series/next number, status, last sent...).
+ *  5. sendDailyReport emails a report (who was emailed, replies, issues) at REPORT_HOUR.
  *
  * Series content
- *  - One Google Doc per series, all in DRIVE_FOLDER_ID.
- *  - The Doc's NAME must match the form's "source" value (ignoring case,
- *    spaces, dashes): source "niche-for-growth" <-> Doc "Niche for Growth".
- *  - Each top-level TAB of the Doc is one email, in tab order.
- *    Tab title = subject line. Tab content = email body.
+ *  - One Google Doc per series, in DRIVE_FOLDER_ID, linked to the form's "source" value
+ *    in CONFIG.SERIES (or named after the source value).
+ *  - Each email is a tab (or heading) titled "Email 1", "Email 2"... Other tabs are ignored.
+ *  - Optional "Subject:" line (then the subject) and "Body:" label at the top of an email.
+ *  - An email that is empty or says "Coming soon" is treated as not written yet.
  *  - {{name}} in the subject or body is replaced with the subscriber's name.
  *
- * Setup: see README.md in this folder.
+ * Setup: see README.md in the repo (scripts/email-series).
  */
 
 var CONFIG = {
