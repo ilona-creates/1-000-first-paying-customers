@@ -516,12 +516,14 @@ function cleanBlockHtml_(h) {
   return h
     .replace(/\s(?:id|class)="[^"]*"/gi, '')
     .replace(/(?:orphans|widows):\s*\d+;?|page-break-after:\s*avoid;?/gi, '')
+    .replace(/(^|[";\s])height:\s*[\d.]+pt;?/gi, '$1')   // blank lines take their real height (the export's fixed 14pt is shorter than in the Doc)
     .replace(/href="https:\/\/www\.google\.com\/url\?q=([^"&]*)[^"]*"/gi, function (all, q) {
       try { return 'href="' + esc_(decodeURIComponent(q)) + '"'; } catch (e) { return all; }
     })
     .replace(/(<span[^>]*>)(<\/span>)/gi, '$1&nbsp;$2')                       // blank paragraphs keep their height
     .replace(/font-family:\s*&quot;([^&]+)&quot;/gi, function (all, fam) {    // fallbacks for mail apps without the web font
-      var fb = /garamond|georgia|times|lora|merriweather|playfair|baskerville|cambria|serif/i.test(fam) ? 'Georgia,&quot;Times New Roman&quot;,serif'
+      var fb = /garamond/i.test(fam) ? 'Garamond,&quot;Times New Roman&quot;,Times,serif'
+             : /georgia|times|lora|merriweather|playfair|baskerville|cambria|serif/i.test(fam) ? 'Georgia,&quot;Times New Roman&quot;,serif'
              : /mono|courier|consolas/i.test(fam) ? '&quot;Courier New&quot;,monospace' : 'Arial,Helvetica,sans-serif';
       return 'font-family:&quot;' + fam + '&quot;,' + fb;
     });
