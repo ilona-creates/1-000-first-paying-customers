@@ -31,8 +31,9 @@ var CONFIG = {
   SERIES: {
     'niche-for-growth': { docId: '1c-F5Kp3-vbU0ecnF0hbZX-M-tRF_D9VRJuDGdIajCls', title: 'Niche Starter Framework' }
   },
-  SEND_HOURS: [9, 12, 17], // send slots in the script time zone (appsscript.json). A later slot retries
-                           // subscribers whose email wasn't written yet ("Coming soon") at the earlier slot.
+  SEND_HOURS: [9],         // daily send time(s), 24-hour clock, in the script time zone (GMT, set in appsscript.json).
+                           // Add more, e.g. [9, 12, 17], to retry people whose email was "Coming soon" earlier in the day.
+                           // After changing this, run installTrigger again: the times are only applied when it runs.
   REPORT_HOUR: 9,          // daily report time...
   REPORT_TIMEZONE: 'Asia/Bangkok',   // ...in ICT
   WEEKDAYS_ONLY: false,    // Doc instructions say Monday-Sunday; set true to pause Sat/Sun
