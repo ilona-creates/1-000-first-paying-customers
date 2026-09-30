@@ -40,7 +40,6 @@ var CONFIG = {
   MAX_RUNTIME_MS: 5 * 60 * 1000,
   // Bot protection
   MAX_SIGNUPS_PER_HOUR: 30,   // more than this in an hour are ignored (protects your email quota)
-  QUOTA_RESERVE: 30,          // never use the last N emails of the daily quota on new signups
   MIN_FILL_MS: 2000           // forms submitted faster than this are treated as bots
 };
 
@@ -73,7 +72,6 @@ function doPost(e) {
     var count = Number(cache.get(hourKey) || 0);
     if (count >= CONFIG.MAX_SIGNUPS_PER_HOUR) return blocked_('hourly limit');
     cache.put(hourKey, String(count + 1), 3700);
-    if (MailApp.getRemainingDailyQuota() < CONFIG.QUOTA_RESERVE) return blocked_('email quota low');
 
     var sheet = getSheet_();
     var cols = getColumns_(sheet);
@@ -110,10 +108,15 @@ function doPost(e) {
     record['Last Error'] = err;
     var rowNum = appendRecord_(sheet, cols, record);
 
-    // Send email #1 right away; the daily triggers handle the rest.
+    // Send email #1 right away. If today's email quota is used up, the signup is still saved and
+    // the next send slot sends it (sendDailyEmails picks up anyone with no email sent yet).
     if (status === STATUS.ACTIVE) {
-      var sub = readRows_(sheet, cols).filter(function (r) { return r.rowNum === rowNum; })[0];
-      sendNext_(sheet, cols, sub, series);
+      if (MailApp.getRemainingDailyQuota() > 0) {
+        var sub = readRows_(sheet, cols).filter(function (r) { return r.rowNum === rowNum; })[0];
+        sendNext_(sheet, cols, sub, series);
+      } else {
+        writeRecord_(sheet, cols, rowNum, { 'Last Error': 'Waiting for daily email quota; Email 1 will go out at the next send slot' });
+      }
     }
     return json_({ result: 'success' });
   } finally {

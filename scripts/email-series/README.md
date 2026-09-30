@@ -13,8 +13,8 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
 - An email that is empty or just says "Coming soon" is skipped quietly (Last Error says so) and sent once you write it.
 - `{{name}}` is replaced with the subscriber's name (subject and body).
 - Supported: headings, bold, italic, underline, links, lists, horizontal rules. Not images or tables.
-- **Bot protection:** a hidden form field and a minimum fill time (bots are ignored silently), a cap of 30 signups per hour,
-  and a reserve of 30 emails of the daily quota. Blocked attempts are counted in the daily report. There is no confirmation email: email #1 goes out immediately.
+- **Bot protection:** a hidden form field and a minimum fill time (bots are ignored silently), and a cap of 30 signups per hour
+  (so bots can't use up your daily email quota). Blocked attempts are counted in the daily report. There is no confirmation email: email #1 goes out immediately.
 - Schedule: one email per person per day, Monday-Sunday, at 09:00, 12:00 or 17:00 (`SEND_HOURS`, in the script time
   zone set by `appsscript.json`, currently GMT). A later slot retries anyone whose email was "Coming soon" earlier.
   Email #1 is sent immediately at signup.
