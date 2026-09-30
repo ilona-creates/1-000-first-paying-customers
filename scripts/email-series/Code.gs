@@ -513,7 +513,7 @@ function emailFromBlocks_(blocks) {
 
 /** Keep the Doc's inline styles; drop page-layout bits, unwrap Google link redirects, keep blank lines visible. */
 function cleanBlockHtml_(h) {
-  return h
+  return normalizeLineBoxes_(normalizeLineBoxes_(h, 'p'), 'li')
     .replace(/\s(?:id|class)="[^"]*"/gi, '')
     .replace(/(?:orphans|widows):\s*\d+;?|page-break-after:\s*avoid;?/gi, '')
     .replace(/(^|[";\s])height:\s*[\d.]+pt;?/gi, '$1')   // blank lines take their real height (the export's fixed 14pt is shorter than in the Doc)
@@ -527,6 +527,23 @@ function cleanBlockHtml_(h) {
              : /mono|courier|consolas/i.test(fam) ? '&quot;Courier New&quot;,monospace' : 'Arial,Helvetica,sans-serif';
       return 'font-family:&quot;' + fam + '&quot;,' + fb;
     });
+}
+
+/**
+ * The export gives each paragraph the Doc's default text style (e.g. 14pt Cormorant Garamond) and puts the real
+ * font and size only on the text inside it. In an email the paragraph's own size would set the line height, making
+ * lines taller than in the Doc. Give each paragraph (and list item) the font and the largest size of its text.
+ */
+function normalizeLineBoxes_(h, tag) {
+  var re = new RegExp('(<' + tag + '\\b[^>]*>)([\\s\\S]*?)(</' + tag + '>)', 'gi');
+  return h.replace(re, function (all, open, inner, close) {
+    var sizes = [], m, sre = /font-size:\s*([\d.]+)pt/gi;
+    while ((m = sre.exec(inner))) sizes.push(parseFloat(m[1]));
+    var fam = (inner.match(/font-family:\s*(&quot;[^&]+&quot;|[^;"]+)/i) || [])[1];
+    if (sizes.length) open = open.replace(/font-size:\s*[\d.]+pt/i, 'font-size:' + Math.max.apply(null, sizes) + 'pt');
+    if (fam) open = open.replace(/font-family:\s*(&quot;[^&]+&quot;|[^;"]+)/i, function () { return 'font-family:' + fam; });
+    return open + inner + close;
+  });
 }
 
 /** Plain text of an HTML fragment (entities decoded). */
