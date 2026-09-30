@@ -30,15 +30,19 @@ var CONFIG = {
   SERIES: {
     'niche-for-growth': { docId: '1c-F5Kp3-vbU0ecnF0hbZX-M-tRF_D9VRJuDGdIajCls', title: 'Niche Starter Framework' }
   },
-  SEND_HOUR: 9,            // daily send time in the script time zone (appsscript.json sets GMT)
+  SEND_HOURS: [9, 12, 17], // send slots in the script time zone (appsscript.json). A later slot retries
+                           // subscribers whose email wasn't written yet ("Coming soon") at the earlier slot.
+  REPORT_HOUR: 9,          // daily report time...
+  REPORT_TIMEZONE: 'Asia/Bangkok',   // ...in ICT
   WEEKDAYS_ONLY: false,    // Doc instructions say Monday-Sunday; set true to pause Sat/Sun
-  REPORT_TO: [],           // daily report recipients; empty = the account that owns this script
+  REPORT_TO: ['ilona@ilonamelnychuk.com'],   // empty = the account that owns this script
   MAX_RUNTIME_MS: 5 * 60 * 1000
 };
 
 var HDR_CURRENT = 'Name of current series and the next number to be sent';
-var HDR_DONE = "Names of whole series' already received";
-var HEADERS = ['Sign-up date and time', 'Name', 'Email', HDR_CURRENT, HDR_DONE, 'Source', 'ID', 'Series', 'Status',
+var HDR_DONE = 'Names of whole serieses already full sent';
+var HDR_REPLIED = 'If they have replied in email, what series name and subject line triggered the reply';
+var HEADERS = ['Sign-up date and time', 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'Source', 'ID', 'Series', 'Status',
                'Emails Sent', 'Total Emails', 'Last Sent', 'Last Error'];
 
 var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed' };
@@ -156,15 +160,19 @@ function sendDailyEmails() {
   } finally {
     lock.releaseLock();
   }
-  try { sendDailyReport_(); } catch (ex) { console.error('Report failed: ' + ex); }
 }
 
-/** Run once from the editor to schedule the daily send. */
+/** Run once from the editor to schedule the send slots and the daily report. */
 function installTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'sendDailyEmails') ScriptApp.deleteTrigger(t);
+    var fn = t.getHandlerFunction();
+    if (fn === 'sendDailyEmails' || fn === 'sendDailyReport') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('sendDailyEmails').timeBased().everyDays(1).atHour(CONFIG.SEND_HOUR).create();
+  CONFIG.SEND_HOURS.forEach(function (h) {
+    ScriptApp.newTrigger('sendDailyEmails').timeBased().everyDays(1).atHour(h).create();
+  });
+  ScriptApp.newTrigger('sendDailyReport').timeBased().everyDays(1).atHour(CONFIG.REPORT_HOUR)
+    .inTimezone(CONFIG.REPORT_TIMEZONE).create();
 }
 
 function sendNext_(sheet, cols, sub, series) {
@@ -218,21 +226,57 @@ function setError_(sheet, cols, rowNum, message) {
 
 /* --------------------------------- Report --------------------------------- */
 
-function sendDailyReport_() {
-  var sheet = getSheet_(), cols = getColumns_(sheet);
-  var rows = readRows_(sheet, cols), today = dayKey_(new Date());
-  var sentToday = rows.filter(function (r) { return r.lastSent && dayKey_(r.lastSent) === today; });
-  var report = buildReport_(today, sentToday, collectIssues_(rows, today));
-  var to = CONFIG.REPORT_TO.length ? CONFIG.REPORT_TO.join(',') : Session.getEffectiveUser().getEmail();
-  MailApp.sendEmail({ to: to, subject: report.subject, body: report.text, htmlBody: report.html, name: CONFIG.SENDER_NAME });
+/** Trigger target: detect replies, then email the report (covers the last 24 hours). */
+function sendDailyReport() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(60000);
+  try {
+    var sheet = getSheet_(), cols = getColumns_(sheet);
+    var rows = readRows_(sheet, cols);
+    var replies = [];
+    try { replies = checkReplies_(sheet, cols, rows); } catch (ex) { console.error('Reply check failed: ' + ex); }
+    var since = Date.now() - 24 * 3600 * 1000;
+    var recent = rows.filter(function (r) { return r.lastSent && r.lastSent.getTime() >= since; });
+    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows), replies);
+    var to = CONFIG.REPORT_TO.length ? CONFIG.REPORT_TO.join(',') : Session.getEffectiveUser().getEmail();
+    MailApp.sendEmail({ to: to, subject: report.subject, body: report.text, htmlBody: report.html, name: CONFIG.SENDER_NAME });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
-function collectIssues_(rows, today) {
-  var issues = [];
+/**
+ * Finds subscriber replies in Gmail (thread subject = the email they replied to) and records
+ * "Series - subject" in the reply column. Returns the newly found replies.
+ */
+function checkReplies_(sheet, cols, rows) {
+  var found = [];
+  rows.forEach(function (r) {
+    if (!r.sent || !r.signup) return;
+    var q = 'from:' + r.email + ' after:' + Utilities.formatDate(r.signup, 'GMT', 'yyyy/MM/dd');
+    var known = r.replied, added = [];
+    GmailApp.search(q, 0, 10).forEach(function (thread) {
+      thread.getMessages().forEach(function (m) {
+        if (m.getFrom().toLowerCase().indexOf(r.email.toLowerCase()) < 0) return;
+        var subj = m.getSubject().replace(/^\s*((re|fw|fwd):\s*)+/i, '').trim();
+        var label = (r.series || 'Unknown series') + ' - "' + subj + '"';
+        if (known.indexOf(label) < 0 && added.indexOf(label) < 0) added.push(label);
+      });
+    });
+    if (added.length) {
+      sheet.getRange(r.rowNum, cols[HDR_REPLIED]).setValue((known ? known + '; ' : '') + added.join('; '));
+      added.forEach(function (label) { found.push({ name: r.name, email: r.email, label: label }); });
+    }
+  });
+  return found;
+}
+
+function collectIssues_(rows) {
+  var issues = [], stale = Date.now() - 36 * 3600 * 1000;
   rows.forEach(function (r) {
     if (r.lastError) issues.push(r.name + ' <' + r.email + '>: ' + r.lastError);
-    else if (r.status === STATUS.ACTIVE && !(r.lastSent && dayKey_(r.lastSent) === today) && r.sent > 0) {
-      issues.push(r.name + ' <' + r.email + '>: was due an email today but none was sent (quota or time limit?)');
+    else if (r.status === STATUS.ACTIVE && r.sent > 0 && r.lastSent && r.lastSent.getTime() < stale) {
+      issues.push(r.name + ' <' + r.email + '>: no email sent for over 36 hours (quota or time limit?)');
     }
   });
   Object.keys(CONFIG.SERIES).forEach(function (src) {
@@ -250,20 +294,27 @@ function collectIssues_(rows, today) {
   return issues;
 }
 
-/** Pure: rows = subscribers emailed today. */
-function buildReport_(day, rows, issues) {
-  var subject = 'Daily email report ' + day + ': ' + rows.length + ' sent, ' + issues.length + ' issue(s)';
-  var lines = ['Emails sent today: ' + rows.length, ''];
-  var html = '<h2 style="margin:0 0 8px">Daily email report, ' + esc_(day) + '</h2><p><strong>Emails sent today: ' + rows.length + '</strong></p>';
+/** Pure: rows = subscribers emailed in the last 24 hours; replies = [{name, email, label}]. */
+function buildReport_(day, rows, issues, replies) {
+  replies = replies || [];
+  var subject = 'Email series report ' + day + ': ' + rows.length + ' sent, ' + issues.length + ' issue(s)';
+  var lines = ['Emails sent in the last 24 hours: ' + rows.length, ''];
+  var html = '<h2 style="margin:0 0 8px">Email series report, ' + esc_(day) + '</h2><p><strong>Emails sent in the last 24 hours: ' + rows.length + '</strong></p>';
   if (rows.length) {
-    html += '<table cellpadding="6" style="border-collapse:collapse;border:1px solid #ccc"><tr style="background:#f2f2f2"><th align="left">Name</th><th align="left">Series</th><th align="left">Sent today</th></tr>';
+    html += '<table cellpadding="6" style="border-collapse:collapse;border:1px solid #ccc"><tr style="background:#f2f2f2"><th align="left">Name</th><th align="left">Series</th><th align="left">Sent</th></tr>';
     rows.forEach(function (r) {
       var n = 'Email ' + r.sent + (r.total ? ' of ' + r.total : '');
       lines.push(r.name + ' | ' + r.series + ' | ' + n);
       html += '<tr><td>' + esc_(r.name) + '</td><td>' + esc_(r.series) + '</td><td>' + esc_(n) + '</td></tr>';
     });
     html += '</table>';
-  } else { lines.push('(nobody was emailed today)'); html += '<p>Nobody was emailed today.</p>'; }
+  } else { lines.push('(nobody was emailed)'); html += '<p>Nobody was emailed.</p>'; }
+  lines.push('', 'New replies: ' + (replies.length || 'none'));
+  html += '<h3>New replies</h3>';
+  if (replies.length) {
+    html += '<ul>' + replies.map(function (p) { return '<li>' + esc_(p.name) + ' &lt;' + esc_(p.email) + '&gt;: ' + esc_(p.label) + '</li>'; }).join('') + '</ul>';
+    replies.forEach(function (p) { lines.push('- ' + p.name + ' <' + p.email + '>: ' + p.label); });
+  } else html += '<p>None.</p>';
   lines.push('', 'Issues to address: ' + (issues.length || 'none'));
   html += '<h3>Issues to address</h3>';
   if (issues.length) {
@@ -355,14 +406,15 @@ function parseEmail_(body, from, to) {
 
 /** Returns '' when the range has no text (e.g. an email that isn't written yet). */
 function bodyToHtml_(body, from, to) {
-  var out = [], listTag = null, hasText = false;
+  var out = [], listTag = null, hasText = false, plain = '';
   function closeList() { if (listTag) { out.push('</' + listTag + '>'); listTag = null; } }
 
   for (var i = from; i < to; i++) {
     var el = body.getChild(i);
     var type = el.getType();
     if (type === DocumentApp.ElementType.LIST_ITEM || type === DocumentApp.ElementType.PARAGRAPH) {
-      if (el.asText().getText().trim()) hasText = true;
+      var tx = el.asText().getText().trim();
+      if (tx) { hasText = true; plain += tx + ' '; }
     }
 
     if (type === DocumentApp.ElementType.LIST_ITEM) {
@@ -386,7 +438,7 @@ function bodyToHtml_(body, from, to) {
     // Tables and images are not supported.
   }
   closeList();
-  if (!hasText) return '';
+  if (!hasText || /^\s*coming soon[.!]?\s*$/i.test(plain)) return '';   // placeholder = not written yet
   return out.join('\n').replace(/^(<p>&nbsp;<\/p>\n?)+/, '').replace(/(\n?<p>&nbsp;<\/p>)+$/, '');
 }
 
@@ -448,6 +500,8 @@ function readRows_(sheet, cols) {
       name: String(get(row, 'Name') || '').trim(),
       email: email,
       source: String(get(row, 'Source') || '').trim(),
+      signup: get(row, 'Sign-up date and time') instanceof Date ? get(row, 'Sign-up date and time') : null,
+      replied: String(get(row, HDR_REPLIED) || ''),
       id: String(get(row, 'ID') || ''),
       series: String(get(row, 'Series') || ''),
       lastError: String(get(row, 'Last Error') || ''),

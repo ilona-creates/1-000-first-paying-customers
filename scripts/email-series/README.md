@@ -10,31 +10,32 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
   If the Doc is a single tab, headings named `Email 1`, `Email 2`... split it instead.
 - **Subject:** optionally start an email with a line `Subject: Your subject here`. Otherwise it defaults to
   `Niche Starter Framework, part N`.
-- An email with no text yet is skipped quietly (Last Error says so) and sent once you write it.
+- An email that is empty or just says "Coming soon" is skipped quietly (Last Error says so) and sent once you write it.
 - `{{name}}` is replaced with the subscriber's name (subject and body).
 - Supported: headings, bold, italic, underline, links, lists, horizontal rules. Not images or tables.
-- Schedule: 9AM GMT, every day (`appsscript.json` sets the time zone; set `WEEKDAYS_ONLY: true` in `CONFIG` to pause Sat/Sun).
+- Schedule: one email per person per day, Monday-Sunday, at 09:00, 12:00 or 17:00 (`SEND_HOURS`, in the script time
+  zone set by `appsscript.json`, currently GMT). A later slot retries anyone whose email was "Coming soon" earlier.
   Email #1 is sent immediately at signup.
 - Subject: put `Subject:` followed by the subject (same line or next line). A `Body:` label line is ignored.
-- **Daily report:** after each daily run the script emails the account owner (or `CONFIG.REPORT_TO`) who was emailed today
-  (name, series, email number) and any issues: errors, missed sends, unwritten emails, low quota.
+- **Daily report** at 09:00 ICT to `REPORT_TO` (ilona@ilonamelnychuk.com): who was emailed in the last 24 hours
+  (name, series, email number), new replies, and issues (errors, missed sends, unwritten emails, low quota).
 
 ## Setup (one time, ~5 min)
 1. Open the Sheet → **Extensions → Apps Script**. Delete the starter code, paste in `Code.gs`. In Project Settings, tick
    "Show appsscript.json" and paste in `appsscript.json` (sets GMT).
 2. Check the `CONFIG` block at the top (IDs are pre-filled; confirm `REPLY_TO` and `SENDER_NAME`).
 3. Select **`installTrigger`** in the function dropdown → **Run** → approve the permissions
-   (Sheets, Drive, Docs, send email). This schedules the daily send (default 9am, script time zone;
-   set the time zone in Project Settings).
+   (Sheets, Drive, Docs, Gmail, send email). This schedules the 09:00/12:00/17:00 sends and the 09:00 ICT report.
 4. **Deploy → New deployment → Web app** — Execute as: **Me**, Who has access: **Anyone**. Copy the URL.
    (After any later code change: Deploy → Manage deployments → edit → new version.)
 5. Paste the URL into `ENDPOINT` in `niche.html` and push.
 6. Test: sign up with your own email. You should get email #1 immediately and a new row in the Sheet.
    To test day 2 without waiting, run `sendDailyEmails` after clearing that row's **Last Sent** cell.
+   To test the report, run `sendDailyReport`.
 
 ## Sheet columns
 `Sign-up date and time, Name, Email`, plus the two status columns already in your Sheet (the script keeps them updated:
-"current series and next number" and "series already received"), plus columns it adds: `Source`,
+"current series and next number", "series already full sent" and "replied to"), plus columns it adds: `Source`,
 `ID, Series, Status, Emails Sent, Total Emails, Last Sent, Last Error`.
 
 **Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, or `Error` (signup with no matching Doc).
