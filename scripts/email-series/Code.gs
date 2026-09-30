@@ -46,10 +46,11 @@ var CONFIG = {
 var HDR_CURRENT = 'Name of current series and the next number to be sent';
 var HDR_DONE = 'Names of whole serieses already full sent';
 var HDR_REPLIED = 'If they have replied in email, what series name and subject line triggered the reply';
+var HDR_SENT = 'Total emails sent to date';
 var HEADERS = ['Sign-up date and time', 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'Source', 'ID', 'Series', 'Status',
-               'Emails Sent', 'Total Emails', 'Last Sent', 'Last Error'];
+               HDR_SENT, 'Last Error'];
 
-var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed' };
+var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed', BOUNCED: 'Bounced' };
 
 /* ------------------------------ Web endpoints ------------------------------ */
 
@@ -95,7 +96,7 @@ function doPost(e) {
     }
 
     var record = {};
-    record['Sign-up date and time'] = new Date();
+    record['Sign-up date and time'] = gmtStamp_(new Date());   // the only date/time column, always GMT
     record['Name'] = sanitizeCell_(name);
     record['Email'] = sanitizeCell_(email);
     record['Source'] = sanitizeCell_(source);
@@ -103,8 +104,7 @@ function doPost(e) {
     record['Series'] = series ? seriesTitle_(source, series) : '';
     if (status === STATUS.ACTIVE && total) record[HDR_CURRENT] = record['Series'] + ' - next: 1 of ' + total;
     record['Status'] = status;
-    record['Emails Sent'] = 0;
-    record['Total Emails'] = total;
+    record[HDR_SENT] = 0;
     record['Last Error'] = err;
     var rowNum = appendRecord_(sheet, cols, record);
 
@@ -171,6 +171,9 @@ function sendDailyEmails() {
     var today = dayKey_(new Date());
     var cache = {};
 
+    // Mark bounced addresses first so they are not emailed again.
+    try { checkBounces_(sheet, cols, readRows_(sheet, cols)); } catch (ex) { console.error('Bounce check failed: ' + ex); }
+
     readRows_(sheet, cols).forEach(function (sub) {
       if (sub.status !== STATUS.ACTIVE) return;
       if (sub.lastSent && dayKey_(sub.lastSent) === today) return;
@@ -213,31 +216,31 @@ function sendNext_(sheet, cols, sub, series) {
     }
     var mail = emails[idx];
     if (!mail.html) {   // not written yet: stay Active and retry on the next run
-      writeRecord_(sheet, cols, sub.rowNum, { 'Total Emails': emails.length, 'Last Error': 'Email ' + (idx + 1) + ' is not written yet' });
+      writeRecord_(sheet, cols, sub.rowNum, { 'Last Error': 'Email ' + (idx + 1) + ' is not written yet' });
       return;
     }
     var vars = { name: sub.name || 'there' };
     var subject = fill_(mail.subject || (seriesTitle_(sub.source, series) + ', part ' + (idx + 1)), vars, false);
     var htmlBody = fill_(mail.html, vars, true) + unsubscribeFooter_(sub.id);
     var text = htmlToText_(htmlBody);
+    var fontCss = mail.fontCss ? '<style>' + mail.fontCss + '</style>' : '';   // web font, where the mail app supports it
 
     MailApp.sendEmail({
       to: sub.email,
       subject: subject,
       body: text,
-      htmlBody: '<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5">' + htmlBody + '</div>',
+      htmlBody: fontCss + '<div style="max-width:468pt">' + htmlBody + '</div>',
       name: CONFIG.SENDER_NAME,
       replyTo: CONFIG.REPLY_TO
     });
 
     var sent = idx + 1;
     var updates = {
-      'Emails Sent': sent,
-      'Total Emails': emails.length,
-      'Last Sent': new Date(),
       'Last Error': '',
       'Status': sent >= emails.length ? STATUS.COMPLETED : STATUS.ACTIVE
     };
+    updates[HDR_SENT] = sent;
+    setProp_('ls:' + sub.id, Date.now());   // when we last emailed them (kept out of the Sheet: one date column only)
     var title = seriesTitle_(sub.source, series);
     updates[HDR_CURRENT] = sent >= emails.length ? 'Finished ' + title : title + ' - next: ' + (sent + 1) + ' of ' + emails.length;
     if (sent >= emails.length) updates[HDR_DONE] = title;
@@ -263,13 +266,26 @@ function sendDailyReport() {
     var rows = readRows_(sheet, cols);
     var replies = [];
     try { replies = checkReplies_(sheet, cols, rows); } catch (ex) { console.error('Reply check failed: ' + ex); }
+    try { checkBounces_(sheet, cols, rows); } catch (ex) { console.error('Bounce check failed: ' + ex); }
+    rows = readRows_(sheet, cols);   // re-read: bounce checks may have changed Status
+    var dayAgo = Date.now() - 24 * 3600 * 1000;
+    var bounced = rows.filter(function (r) { return r.status === STATUS.BOUNCED && r.bouncedAt && r.bouncedAt.getTime() >= dayAgo; });
+    var totals = {};
+    rows.forEach(function (r) {
+      if (!(r.source in totals)) {
+        try { var f = findSeries_(r.source); totals[r.source] = f ? getEmails_(f).length : 0; } catch (ex) { totals[r.source] = 0; }
+      }
+      r.total = totals[r.source];
+    });
     var since = Date.now() - 24 * 3600 * 1000;
     var recent = rows.filter(function (r) { return r.lastSent && r.lastSent.getTime() >= since; });
     var props = PropertiesService.getScriptProperties();
     var blocked = (Number(props.getProperty('blocked:' + dayKey_(new Date()))) || 0) +
                   (Number(props.getProperty('blocked:' + dayKey_(new Date(Date.now() - 24 * 3600 * 1000)))) || 0);
     var notes = ['Suspected bot signups blocked (last 2 days): ' + blocked];
-    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows), replies, notes);
+    var report = buildReport_(Utilities.formatDate(new Date(), CONFIG.REPORT_TIMEZONE, 'yyyy-MM-dd'), recent, collectIssues_(rows).concat(bounced.map(function (r) {
+      return who_(r) + ': email bounced, so the address may be mistyped. Sending to them has stopped.';
+    })), replies, notes);
     var to = CONFIG.REPORT_TO.length ? CONFIG.REPORT_TO.join(',') : Session.getEffectiveUser().getEmail();
     MailApp.sendEmail({ to: to, subject: report.subject, body: report.text, htmlBody: report.html, name: CONFIG.SENDER_NAME });
   } finally {
@@ -297,18 +313,45 @@ function checkReplies_(sheet, cols, rows) {
     });
     if (added.length) {
       sheet.getRange(r.rowNum, cols[HDR_REPLIED]).setValue((known ? known + '; ' : '') + added.join('; '));
-      added.forEach(function (label) { found.push({ name: r.name, email: r.email, label: label }); });
+      added.forEach(function (label) { found.push({ who: who_(r), label: label }); });
     }
   });
   return found;
 }
 
+/**
+ * Finds delivery failures in Gmail for subscribers we emailed and marks them Bounced (sending stops).
+ * Returns the newly bounced subscribers.
+ */
+function checkBounces_(sheet, cols, rows) {
+  var bodies = [];
+  GmailApp.search('from:(mailer-daemon OR postmaster) subject:(failure OR undeliverable OR returned) newer_than:2d', 0, 50)
+    .forEach(function (t) {
+      t.getMessages().forEach(function (m) { bodies.push(m.getPlainBody().toLowerCase()); });
+    });
+  var found = [];
+  if (!bodies.length) return found;
+  rows.forEach(function (r) {
+    if ((r.status !== STATUS.ACTIVE && r.status !== STATUS.COMPLETED) || !r.sent) return;
+    var addr = r.email.toLowerCase();
+    if (bodies.some(function (b) { return b.indexOf(addr) >= 0; })) {
+      writeRecord_(sheet, cols, r.rowNum, { 'Status': STATUS.BOUNCED, 'Last Error': 'Email bounced: address not found or cannot receive mail' });
+      setProp_('bounced:' + r.id, Date.now());
+      found.push(r);
+    }
+  });
+  return found;
+}
+
+/** Report label for a subscriber: name and Sheet row, never the email address. */
+function who_(r) { return (r.name || '(no name)') + ' (row ' + r.rowNum + ')'; }
+
 function collectIssues_(rows) {
   var issues = [], stale = Date.now() - 36 * 3600 * 1000;
   rows.forEach(function (r) {
-    if (r.lastError) issues.push(r.name + ' <' + r.email + '>: ' + r.lastError);
+    if (r.lastError && r.status !== STATUS.BOUNCED) issues.push(who_(r) + ': ' + r.lastError);
     else if (r.status === STATUS.ACTIVE && r.sent > 0 && r.lastSent && r.lastSent.getTime() < stale) {
-      issues.push(r.name + ' <' + r.email + '>: no email sent for over 36 hours (quota or time limit?)');
+      issues.push(who_(r) + ': no email sent for over 36 hours (quota or time limit?)');
     }
   });
   Object.keys(CONFIG.SERIES).forEach(function (src) {
@@ -316,7 +359,7 @@ function collectIssues_(rows) {
       var file = findSeries_(src), emails = getEmails_(file);
       var empty = [];
       emails.forEach(function (m, i) { if (!m.html) empty.push(i + 1); });
-      if (empty.length) issues.push('Series "' + seriesTitle_(src, file) + '": Email ' + empty.join(', ') + ' have no content yet');
+      if (empty.length) issues.push('Series "' + seriesTitle_(src, file) + '": ' + (empty.length > 1 ? 'Emails ' : 'Email ') + empty.join(', ') + (empty.length > 1 ? ' have' : ' has') + ' no content yet');
     } catch (ex) {
       issues.push('Series "' + src + '": ' + ex);
     }
@@ -326,7 +369,7 @@ function collectIssues_(rows) {
   return issues;
 }
 
-/** Pure: rows = subscribers emailed in the last 24 hours; replies = [{name, email, label}]. */
+/** Pure: rows = subscribers emailed in the last 24 hours; replies = [{who, label}]. */
 function buildReport_(day, rows, issues, replies, notes) {
   replies = replies || [];
   notes = notes || [];
@@ -337,16 +380,16 @@ function buildReport_(day, rows, issues, replies, notes) {
     html += '<table cellpadding="6" style="border-collapse:collapse;border:1px solid #ccc"><tr style="background:#f2f2f2"><th align="left">Name</th><th align="left">Series</th><th align="left">Sent</th></tr>';
     rows.forEach(function (r) {
       var n = 'Email ' + r.sent + (r.total ? ' of ' + r.total : '');
-      lines.push(r.name + ' | ' + r.series + ' | ' + n);
-      html += '<tr><td>' + esc_(r.name) + '</td><td>' + esc_(r.series) + '</td><td>' + esc_(n) + '</td></tr>';
+      lines.push(who_(r) + ' | ' + r.series + ' | ' + n);
+      html += '<tr><td>' + esc_(who_(r)) + '</td><td>' + esc_(r.series) + '</td><td>' + esc_(n) + '</td></tr>';
     });
     html += '</table>';
   } else { lines.push('(nobody was emailed)'); html += '<p>Nobody was emailed.</p>'; }
   lines.push('', 'New replies: ' + (replies.length || 'none'));
   html += '<h3>New replies</h3>';
   if (replies.length) {
-    html += '<ul>' + replies.map(function (p) { return '<li>' + esc_(p.name) + ' &lt;' + esc_(p.email) + '&gt;: ' + esc_(p.label) + '</li>'; }).join('') + '</ul>';
-    replies.forEach(function (p) { lines.push('- ' + p.name + ' <' + p.email + '>: ' + p.label); });
+    html += '<ul>' + replies.map(function (p) { return '<li>' + esc_(p.who) + ': ' + esc_(p.label) + '</li>'; }).join('') + '</ul>';
+    replies.forEach(function (p) { lines.push('- ' + p.who + ': ' + p.label); });
   } else html += '<p>None.</p>';
   lines.push('', 'Issues to address: ' + (issues.length || 'none'));
   html += '<h3>Issues to address</h3>';
@@ -383,13 +426,115 @@ function seriesTitle_(source, file) {
   return file.getName();
 }
 
-/** Returns [{subject, html}] — one per top-level tab. Cached briefly. */
+/**
+ * Returns [{subject, html, fontCss}], one per "Email N" section of the series Doc.
+ * The email HTML comes from the Doc's own HTML export so fonts, sizes, colours, spacing and blank lines
+ * match the Doc exactly. Cached for the run (and briefly across runs).
+ */
 function getEmails_(file) {
-  var cache = CacheService.getScriptCache();
-  var key = 'series:' + file.getId() + ':' + file.getLastUpdated().getTime();
-  var hit = cache.get(key);
-  if (hit) return JSON.parse(hit);
+  var memo = getEmails_.memo || (getEmails_.memo = {});
+  var key = file.getId() + ':' + file.getLastUpdated().getTime();
+  if (memo[key]) return memo[key];
+  var cache = CacheService.getScriptCache(), ckey = 'series2:' + key;
+  var hit = cache.get(ckey);
+  if (hit) return (memo[key] = JSON.parse(hit));
 
+  var emails = null;
+  try { emails = getEmailsFromExport_(file); } catch (ex) { console.warn('HTML export failed, using plain conversion: ' + ex); }
+  if (!emails || !emails.length) emails = getEmailsFromApi_(file);
+  memo[key] = emails;
+  try { cache.put(ckey, JSON.stringify(emails), 600); } catch (ignored) { /* over the 100KB cache limit: fine */ }
+  return emails;
+}
+
+function getEmailsFromExport_(file) {
+  var resp = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + file.getId() + '/export?mimeType=text%2Fhtml', {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() !== 200) throw new Error('export HTTP ' + resp.getResponseCode());
+  return parseExportHtml_(resp.getContentText());
+}
+
+/** Pure: Doc HTML export -> [{subject, html, fontCss}]. Sections start at a title/heading "Email N". */
+function parseExportHtml_(html) {
+  var emailRe = /^\s*email\s*\d+/i;
+  var css = (html.match(/<style[^>]*>([\s\S]*?)<\/style>/i) || [])[1] || '';
+  var fontCss = (css.match(/@import url\([^)]*\);?/i) || [''])[0];
+  var body = html.replace(/^[\s\S]*?<body[^>]*>/i, '').replace(/<\/body>[\s\S]*$/i, '');
+
+  var blocks = [], re = /<(p|ol|ul|h[1-6]|table)\b[^>]*>[\s\S]*?<\/\1>|<hr\b[^>]*\/?>/gi, m;
+  while ((m = re.exec(body))) {
+    var tag = /^<hr/i.test(m[0]) ? 'hr' : m[1].toLowerCase();
+    blocks.push({
+      tag: tag,
+      html: m[0],
+      text: htmlText_(m[0]),
+      isTitle: tag === 'p' && /class="[^"]*\btitle\b/i.test(m[0].slice(0, 200)),
+      isHeading: /^h[1-6]$/.test(tag)
+    });
+  }
+
+  var starts = [];
+  blocks.forEach(function (b, i) { if ((b.isTitle || b.isHeading) && emailRe.test(b.text)) starts.push(i); });
+  var emails = [];
+  starts.forEach(function (from) {
+    var to = from + 1;
+    while (to < blocks.length && !(blocks[to].isTitle || (blocks[to].isHeading && emailRe.test(blocks[to].text)))) to++;
+    var mail = emailFromBlocks_(blocks.slice(from + 1, to));
+    mail.fontCss = fontCss;
+    emails.push(mail);
+  });
+  return emails;
+}
+
+/** Optional "Subject:" (same line or next line) and "Body:" labels at the top; "Coming soon" or empty = not written. */
+function emailFromBlocks_(blocks) {
+  var subject = '', wantSubject = false, i = 0;
+  while (i < blocks.length) {
+    var t = blocks[i].text;
+    if (!t) { i++; continue; }
+    if (wantSubject) { subject = t; wantSubject = false; i++; continue; }
+    var sm = t.match(/^subject:\s*(.*)$/i);
+    if (sm) { if (sm[1]) subject = sm[1]; else wantSubject = true; i++; continue; }
+    if (/^body:?$/i.test(t)) { i++; continue; }
+    break;
+  }
+  var rest = blocks.slice(i);
+  var isBlank = function (b) { return b.tag === 'p' && !b.text; };
+  while (rest.length && isBlank(rest[0])) rest.shift();
+  while (rest.length && isBlank(rest[rest.length - 1])) rest.pop();
+  var plain = rest.map(function (b) { return b.text; }).join(' ').trim();
+  if (!plain || /^coming soon[.!]?$/i.test(plain)) return { subject: subject, html: '' };
+  return { subject: subject, html: rest.map(function (b) { return cleanBlockHtml_(b.html); }).join('') };
+}
+
+/** Keep the Doc's inline styles; drop page-layout bits, unwrap Google link redirects, keep blank lines visible. */
+function cleanBlockHtml_(h) {
+  return h
+    .replace(/\s(?:id|class)="[^"]*"/gi, '')
+    .replace(/(?:orphans|widows):\s*\d+;?|page-break-after:\s*avoid;?/gi, '')
+    .replace(/href="https:\/\/www\.google\.com\/url\?q=([^"&]*)[^"]*"/gi, function (all, q) {
+      try { return 'href="' + esc_(decodeURIComponent(q)) + '"'; } catch (e) { return all; }
+    })
+    .replace(/(<span[^>]*>)(<\/span>)/gi, '$1&nbsp;$2')                       // blank paragraphs keep their height
+    .replace(/font-family:\s*&quot;([^&]+)&quot;/gi, function (all, fam) {    // fallbacks for mail apps without the web font
+      var fb = /garamond|georgia|times|lora|merriweather|playfair|baskerville|cambria|serif/i.test(fam) ? 'Georgia,&quot;Times New Roman&quot;,serif'
+             : /mono|courier|consolas/i.test(fam) ? '&quot;Courier New&quot;,monospace' : 'Arial,Helvetica,sans-serif';
+      return 'font-family:&quot;' + fam + '&quot;,' + fb;
+    });
+}
+
+/** Plain text of an HTML fragment (entities decoded). */
+function htmlText_(h) {
+  return h.replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&#(\d+);/g, function (a, n) { return String.fromCharCode(+n); }).replace(/&amp;/g, '&')
+    .replace(/ /g, ' ').trim();
+}
+
+/** Fallback: rebuild each email from the Doc's text and basic styling (bold, italic, links, lists). */
+function getEmailsFromApi_(file) {
   var emailRe = /^\s*email\s*\d+/i;
   var tabs = DocumentApp.openById(file.getId()).getTabs();
   var emails = [];
@@ -417,7 +562,6 @@ function getEmails_(file) {
     });
   }
   if (!emails.length) throw new Error('No "Email N" tabs found in "' + file.getName() + '"');
-  try { cache.put(key, JSON.stringify(emails), 600); } catch (ignored) { /* >100KB */ }
   return emails;
 }
 
@@ -507,8 +651,44 @@ function getSheet_() {
   return sheets[0];
 }
 
+/**
+ * One-time tidy-up of older Sheets: rename "Emails Sent", and remove the "Last Sent" and "Total Emails" columns
+ * (Column A is the only date/time column; last-sent times are kept by the script, totals come from the Doc).
+ */
+function migrateSheet_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  if (!lastCol) return;
+  var hdr = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h).trim(); });
+  var iSent = hdr.indexOf('Emails Sent');
+  if (iSent >= 0 && hdr.indexOf(HDR_SENT) < 0) sheet.getRange(1, iSent + 1).setValue(HDR_SENT);
+
+  var iLast = hdr.indexOf('Last Sent'), iTotal = hdr.indexOf('Total Emails'), iId = hdr.indexOf('ID');
+  var lastRow = sheet.getLastRow();
+
+  // Column A: turn real date cells into the text format (30-September-2026 05:34 GMT).
+  var iDate = hdr.indexOf('Sign-up date and time');
+  if (iDate >= 0 && lastRow >= 2) {
+    var dates = sheet.getRange(2, iDate + 1, lastRow - 1, 1).getValues();
+    for (var d = 0; d < dates.length; d++) {
+      if (dates[d][0] instanceof Date) sheet.getRange(d + 2, iDate + 1).setValue(gmtStamp_(dates[d][0]));
+    }
+  }
+  if (iLast >= 0 && iId >= 0 && lastRow >= 2) {
+    var ids = sheet.getRange(2, iId + 1, lastRow - 1, 1).getValues();
+    var vals = sheet.getRange(2, iLast + 1, lastRow - 1, 1).getValues();
+    var props = {};
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i][0] && vals[i][0] instanceof Date) props['ls:' + ids[i][0]] = String(vals[i][0].getTime());
+    }
+    if (Object.keys(props).length) PropertiesService.getScriptProperties().setProperties(props);
+  }
+  [iLast, iTotal].filter(function (i) { return i >= 0; }).sort(function (a, b) { return b - a; })
+    .forEach(function (i) { sheet.deleteColumn(i + 1); });
+}
+
 /** Map header name -> 1-based column, adding any missing headers at the end. */
 function getColumns_(sheet) {
+  migrateSheet_(sheet);
   var lastCol = Math.max(sheet.getLastColumn(), 1);
   var existing = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var cols = {};
@@ -527,25 +707,26 @@ function readRows_(sheet, cols) {
   var width = sheet.getLastColumn();
   var data = sheet.getRange(2, 1, last - 1, width).getValues();
   var get = function (row, h) { return row[cols[h] - 1]; };
+  var props = PropertiesService.getScriptProperties().getProperties();
   var rows = [];
   data.forEach(function (row, i) {
     var email = String(get(row, 'Email') || '').trim();
     if (!email) return;
-    var lastSent = get(row, 'Last Sent');
+    var id = String(get(row, 'ID') || '');
     rows.push({
       rowNum: i + 2,
       name: String(get(row, 'Name') || '').trim(),
       email: email,
       source: String(get(row, 'Source') || '').trim(),
-      signup: get(row, 'Sign-up date and time') instanceof Date ? get(row, 'Sign-up date and time') : null,
+      signup: parseStamp_(get(row, 'Sign-up date and time')),
       replied: String(get(row, HDR_REPLIED) || ''),
-      id: String(get(row, 'ID') || ''),
+      id: id,
       series: String(get(row, 'Series') || ''),
       lastError: String(get(row, 'Last Error') || ''),
-      total: Number(get(row, 'Total Emails')) || 0,
       status: String(get(row, 'Status') || '').trim(),
-      sent: Number(get(row, 'Emails Sent')) || 0,
-      lastSent: lastSent instanceof Date ? lastSent : null
+      sent: Number(get(row, HDR_SENT)) || 0,
+      lastSent: props['ls:' + id] ? new Date(Number(props['ls:' + id])) : null,
+      bouncedAt: props['bounced:' + id] ? new Date(Number(props['bounced:' + id])) : null
     });
   });
   return rows;
@@ -589,5 +770,23 @@ function esc_(s) {
 function norm_(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 function clean_(s) { return String(s || '').trim().substring(0, 200); }
 function sanitizeCell_(s) { return /^[=+\-@]/.test(s) ? "'" + s : s; }   // block formula injection
+function setProp_(key, value) { PropertiesService.getScriptProperties().setProperty(key, String(value)); }
+var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** Column A format: "30-September-2026 05:34 GMT". */
+function gmtStamp_(d) {
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(d.getUTCDate()) + '-' + MONTHS[d.getUTCMonth()] + '-' + d.getUTCFullYear() + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' GMT';
+}
+/** Reads a Sheet date cell: a real date, "30-September-2026 05:34 GMT", or the older "2026-09-30 05:34 GMT". */
+function parseStamp_(v) {
+  if (v instanceof Date) return v;
+  var t = String(v || '').trim(), m = t.match(/^(\d{1,2})-([A-Za-z]+)-(\d{4})(?: (\d{2}):(\d{2}))?(?: GMT)?$/);
+  if (m) {
+    var mi = MONTHS.map(function (n) { return n.toLowerCase(); }).indexOf(m[2].toLowerCase());
+    if (mi >= 0) return new Date(Date.UTC(+m[3], mi, +m[1], +(m[4] || 0), +(m[5] || 0)));
+  }
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) GMT$/);
+  return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : null;
+}
 function dayKey_(d) { return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
 function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }

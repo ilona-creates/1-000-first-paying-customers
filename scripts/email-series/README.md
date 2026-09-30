@@ -12,7 +12,9 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
   `Niche Starter Framework, part N`.
 - An email that is empty or just says "Coming soon" is skipped quietly (Last Error says so) and sent once you write it.
 - `{{name}}` is replaced with the subscriber's name (subject and body).
-- Supported: headings, bold, italic, underline, links, lists, horizontal rules. Not images or tables.
+- **Formatting:** the email uses the Doc's own formatting (font, size, colour, bold/italic, alignment, line spacing, blank lines,
+  links, lists, horizontal rules), taken from the Doc's HTML export, so it looks like the Doc. Mail apps that can't load the Doc's
+  font (Gmail, for example) fall back to a similar serif font. Images and tables are not supported.
 - **Bot protection:** a hidden form field and a minimum fill time (bots are ignored silently), and a cap of 30 signups per hour
   (so bots can't use up your daily email quota). Blocked attempts are counted in the daily report. There is no confirmation email: email #1 goes out immediately.
 - Schedule: one email per person per day, Monday-Sunday, at 09:00, 12:00 or 17:00 (`SEND_HOURS`, in the script time
@@ -20,7 +22,8 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
   Email #1 is sent immediately at signup.
 - Subject: put `Subject:` followed by the subject (same line or next line). A `Body:` label line is ignored.
 - **Daily report** at 09:00 ICT to `REPORT_TO` (ilona@ilonamelnychuk.com): who was emailed in the last 24 hours
-  (name, series, email number), new replies, and issues (errors, missed sends, unwritten emails, low quota).
+  (name, series, email number), new replies, bounced addresses, and issues (errors, missed sends, unwritten emails, low quota).
+  The report shows names and Sheet row numbers only, never subscribers' email addresses. Bounced addresses are marked `Bounced` and no longer emailed.
 
 ## Setup (one time, ~5 min)
 1. Open the Sheet → **Extensions → Apps Script**. Delete the starter code, paste in `Code.gs`. In Project Settings, tick
@@ -36,14 +39,18 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
    To test the report, run `sendDailyReport`.
 
 ## Sheet columns
-`Sign-up date and time, Name, Email`, plus the two status columns already in your Sheet (the script keeps them updated:
-"current series and next number", "series already full sent" and "replied to"), plus columns it adds: `Source`,
-`ID, Series, Status, Emails Sent, Total Emails, Last Sent, Last Error`.
+`Sign-up date and time` (Column A, always GMT, like `30-September-2026 05:34 GMT`, the only date/time column), `Name`, `Email`, the three status columns
+("current series and next number", "series already full sent", "replied to"), and the columns the script adds:
+`Source, ID, Series, Status, Total emails sent to date, Last Error`.
 
-**Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, or `Error` (signup with no matching Doc).
+Older Sheets are tidied automatically on the next run: `Emails Sent` is renamed `Total emails sent to date`, and the
+`Total Emails` and `Last Sent` columns are removed (the script keeps each person's last-sent time itself).
+
+**Status**: `Active` → `Completed` (all emails sent), `Unsubscribed`, `Bounced` (the email bounced; sending stops), or
+`Error` (signup with no matching Doc). Bounces are checked before every send slot and in the daily report.
 Temporary problems (quota hit, empty tab) show in **Last Error** and the subscriber stays `Active`,
-retrying on the next daily run. Edit a row's **Emails Sent** to skip/resend an email; set Status to
-`Paused` (any value other than `Active`) to stop sending.
+retrying on the next send slot. Edit a row's **Total emails sent to date** to skip/resend an email; set Status to
+anything other than `Active` (for example `Paused`) to stop sending.
 
 ## Limits
 - Gmail free accounts send ~100 emails/day, Google Workspace ~1,500. The script stops when quota runs out
