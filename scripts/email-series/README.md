@@ -17,8 +17,10 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
   font (Gmail, for example) fall back to a similar serif font. Images and tables are not supported.
 - **Bot protection:** a hidden form field and a minimum fill time (bots are ignored silently), and a cap of 30 signups per hour
   (so bots can't use up your daily email quota). Blocked attempts are counted in the daily report. There is no confirmation email: email #1 goes out immediately.
-- Schedule: one email per person per day, Monday-Sunday, at 09:00, 12:00 or 17:00 (`SEND_HOURS`, in the script time
-  zone set by `appsscript.json`, currently GMT). A later slot retries anyone whose email was "Coming soon" earlier.
+- Schedule: one email per person per day, Monday-Sunday, at 09:00 GMT (`SEND_HOURS` in `Code.gs`; the time zone is set by
+  `appsscript.json`). The schedule is set in the script, not read from the Doc's "Instructions" section: to change it, edit
+  `SEND_HOURS` and run `installTrigger` again. Adding more times (e.g. `[9, 12, 17]`) makes later times retry anyone whose
+  email was "Coming soon" earlier; with a single time they simply get it the next day.
   Email #1 is sent immediately at signup.
 - Subject: put `Subject:` followed by the subject (same line or next line). A `Body:` label line is ignored.
 - **Daily report** at 09:00 ICT to `REPORT_TO` (ilona@ilonamelnychuk.com): who was emailed in the last 24 hours
