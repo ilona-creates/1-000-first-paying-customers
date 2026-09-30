@@ -664,6 +664,15 @@ function migrateSheet_(sheet) {
 
   var iLast = hdr.indexOf('Last Sent'), iTotal = hdr.indexOf('Total Emails'), iId = hdr.indexOf('ID');
   var lastRow = sheet.getLastRow();
+
+  // Column A: turn real date cells into the text format (30-September-2026 05:34 GMT).
+  var iDate = hdr.indexOf('Sign-up date and time');
+  if (iDate >= 0 && lastRow >= 2) {
+    var dates = sheet.getRange(2, iDate + 1, lastRow - 1, 1).getValues();
+    for (var d = 0; d < dates.length; d++) {
+      if (dates[d][0] instanceof Date) sheet.getRange(d + 2, iDate + 1).setValue(gmtStamp_(dates[d][0]));
+    }
+  }
   if (iLast >= 0 && iId >= 0 && lastRow >= 2) {
     var ids = sheet.getRange(2, iId + 1, lastRow - 1, 1).getValues();
     var vals = sheet.getRange(2, iLast + 1, lastRow - 1, 1).getValues();
@@ -762,11 +771,21 @@ function norm_(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '
 function clean_(s) { return String(s || '').trim().substring(0, 200); }
 function sanitizeCell_(s) { return /^[=+\-@]/.test(s) ? "'" + s : s; }   // block formula injection
 function setProp_(key, value) { PropertiesService.getScriptProperties().setProperty(key, String(value)); }
-function gmtStamp_(d) { return Utilities.formatDate(d, 'GMT', 'yyyy-MM-dd HH:mm') + ' GMT'; }
-/** Reads a Sheet date cell: a real date, or our "2026-09-30 05:34 GMT" text. */
+var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** Column A format: "30-September-2026 05:34 GMT". */
+function gmtStamp_(d) {
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return p(d.getUTCDate()) + '-' + MONTHS[d.getUTCMonth()] + '-' + d.getUTCFullYear() + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' GMT';
+}
+/** Reads a Sheet date cell: a real date, "30-September-2026 05:34 GMT", or the older "2026-09-30 05:34 GMT". */
 function parseStamp_(v) {
   if (v instanceof Date) return v;
-  var m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) GMT$/);
+  var t = String(v || '').trim(), m = t.match(/^(\d{1,2})-([A-Za-z]+)-(\d{4})(?: (\d{2}):(\d{2}))?(?: GMT)?$/);
+  if (m) {
+    var mi = MONTHS.map(function (n) { return n.toLowerCase(); }).indexOf(m[2].toLowerCase());
+    if (mi >= 0) return new Date(Date.UTC(+m[3], mi, +m[1], +(m[4] || 0), +(m[5] || 0)));
+  }
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}) GMT$/);
   return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : null;
 }
 function dayKey_(d) { return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
