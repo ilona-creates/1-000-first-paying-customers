@@ -56,6 +56,9 @@ var HEADERS = [HDR_DATE, 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'S
 /** A line that says just "Coming soon" at the top of an email (before Subject/Body) holds the whole email back. */
 var HOLD_RE = /^coming soon[.!]?$/i;
 
+/** Lines that exist only for the person writing the Doc: "Body:" or "Email 3" on a line of their own. Never sent. */
+var WRITER_LABEL_RE = /^(?:body|email\s*\d+)\s*[:.\-–]?$/i;
+
 var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed', BOUNCED: 'Bounced' };
 
 /* ------------------------------ Web endpoints ------------------------------ */
@@ -502,12 +505,12 @@ function emailFromBlocks_(blocks) {
     if (!t) { i++; continue; }
     if (HOLD_RE.test(t)) return { subject: '', html: '' };   // "Coming soon" at the top = hold: not ready to send
     if (wantSubject) { subject = t; wantSubject = false; i++; continue; }
-    var sm = t.match(/^subject:\s*(.*)$/i);
+    var sm = t.match(/^subject(?:\s+line)?\s*:\s*(.*)$/i);
     if (sm) { if (sm[1]) subject = sm[1]; else wantSubject = true; i++; continue; }
     if (/^body:?$/i.test(t)) { i++; continue; }
     break;
   }
-  var rest = blocks.slice(i);
+  var rest = blocks.slice(i).filter(function (b) { return !(b.tag === 'p' || /^h[1-6]$/.test(b.tag)) || !WRITER_LABEL_RE.test(b.text); });
   var isBlank = function (b) { return (b.tag === 'p' || /^h[1-6]$/.test(b.tag)) && !b.text; };   // empty lines and empty headings
   while (rest.length && isBlank(rest[0])) rest.shift();
   while (rest.length && isBlank(rest[rest.length - 1])) rest.pop();
@@ -601,7 +604,7 @@ function parseEmail_(body, from, to) {
     if (!t) { from = i + 1; continue; }
     if (HOLD_RE.test(t)) return { subject: '', html: '' };   // "Coming soon" at the top = hold: not ready to send
     if (wantSubject) { subject = t; wantSubject = false; from = i + 1; continue; }
-    var m = t.match(/^subject:\s*(.*)$/i);
+    var m = t.match(/^subject(?:\s+line)?\s*:\s*(.*)$/i);
     if (m) { if (m[1]) subject = m[1]; else wantSubject = true; from = i + 1; continue; }
     if (/^body:?$/i.test(t)) { from = i + 1; continue; }
     break;
