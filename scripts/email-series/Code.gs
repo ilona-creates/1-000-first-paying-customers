@@ -38,6 +38,8 @@ var CONFIG = {
   REPORT_TIMEZONE: 'Asia/Bangkok',   // ...in ICT
   WEEKDAYS_ONLY: false,    // Doc instructions say Monday-Sunday; set true to pause Sat/Sun
   REPORT_TO: ['ilona@ilonamelnychuk.com'],   // empty = the account that owns this script
+  DOC_LINE_FACTOR: 1.15,      // Google Docs multiplies its line spacing by the font's own line height (about 1.15 for Arial)
+  EMAIL_SPACING_SCALE: 1,     // gaps between paragraphs in emails: 1 = as in the Doc, 0.75 = tighter, 1.25 = looser
   MAX_RUNTIME_MS: 5 * 60 * 1000,
   // Bot protection
   MAX_SIGNUPS_PER_HOUR: 30,   // more than this in an hour are ignored (protects your email quota)
@@ -516,12 +518,55 @@ function emailFromBlocks_(blocks) {
   while (rest.length && isBlank(rest[rest.length - 1])) rest.pop();
   var plain = rest.map(function (b) { return b.text; }).join(' ').trim();
   if (!plain || /^coming soon[.!]?$/i.test(plain)) return { subject: subject, html: '' };
-  return { subject: subject, html: rest.map(function (b) { return cleanBlockHtml_(b.html); }).join('') };
+  var parts = splitSignature_(rest);
+  return { subject: subject, html: parts.main.map(function (b) { return cleanBlockHtml_(b.html); }).join('') + signatureHtml_(parts.sig) };
+}
+
+/**
+ * The closing block of an email: everything after the LAST horizontal line, when it is short (1-6 plain paragraphs),
+ * e.g. name / tagline / "book a call". It gets a compact, professional layout instead of the Doc's body spacing.
+ */
+function splitSignature_(blocks) {
+  var idx = -1;
+  blocks.forEach(function (b, i) { if (b.tag === 'hr') idx = i; });
+  if (idx < 0) return { main: blocks, sig: [] };
+  var tail = blocks.slice(idx + 1).filter(function (b) { return b.text; });
+  var plainOnly = tail.every(function (b) { return b.tag === 'p'; });
+  if (!tail.length || tail.length > 6 || !plainOnly) return { main: blocks, sig: [] };
+  var main = blocks.slice(0, idx);
+  while (main.length && main[main.length - 1].tag === 'p' && !main[main.length - 1].text) main.pop();
+  // The sign-off above the line ("Ilona") and the same name again at the top of the signature: keep only the first.
+  var signOff = main.length ? main[main.length - 1].text.trim().toLowerCase() : '';
+  if (tail.length > 1 && signOff && tail[0].text.trim().toLowerCase() === signOff) tail.shift();
+  return { main: main, sig: tail };
+}
+
+function signatureHtml_(blocks) {
+  if (!blocks.length) return '';
+  var out = ['<hr style="border:0;border-top:1px solid #d0d0d0;margin:22pt 0 12pt">'];
+  blocks.forEach(function (b, k) {
+    var h = cleanBlockHtml_(b.html).replace(/color:\s*#1155cc/gi, 'color:#8B1538');   // links in your brand colour
+    var hasLink = /<a\s/i.test(h);
+    h = h.replace(/^<p\b([^>]*?)\sstyle="([^"]*)"([^>]*)>/i, function (all, pre, css, post) {
+      var props = parseStyle_(css).filter(function (kv) { return !/^(padding|margin|line-height)/.test(kv[0]); });
+      props.push(['margin', '0'], ['margin-bottom', k === blocks.length - 1 ? '0' : '3pt'], ['line-height', '1.4']);
+      if (hasLink && k > 0) props.push(['margin-top', '8pt']);
+      return '<p' + pre + ' style="' + styleToString_(props) + '"' + post + '>';
+    });
+    if (k === 0 && !hasLink && b.text.length <= 40) h = h.replace(/font-weight:\s*400/gi, 'font-weight:700');   // name in bold
+    out.push(h);
+  });
+  return out.join('');
 }
 
 /** Keep the Doc's inline styles; drop page-layout bits, unwrap Google link redirects, keep blank lines visible. */
 function cleanBlockHtml_(h) {
+  return spaceAsMargins_(cleanBlockStyles_(h), CONFIG.EMAIL_SPACING_SCALE);
+}
+
+function cleanBlockStyles_(h) {
   return normalizeLineBoxes_(normalizeLineBoxes_(h, 'p'), 'li')
+    .replace(/<hr\b[^>]*>/gi, '<hr style="border:0;border-top:1px solid #d0d0d0;margin:14pt 0">')
     .replace(/\s(?:id|class)="[^"]*"/gi, '')
     .replace(/(?:orphans|widows):\s*\d+;?|page-break-after:\s*avoid;?/gi, '')
     .replace(/(^|[";\s])height:\s*[\d.]+pt;?/gi, '$1')   // blank lines take their real height (the export's fixed 14pt is shorter than in the Doc)
@@ -551,6 +596,46 @@ function normalizeLineBoxes_(h, tag) {
     if (sizes.length) open = open.replace(/font-size:\s*[\d.]+pt/i, 'font-size:' + Math.max.apply(null, sizes) + 'pt');
     if (fam) open = open.replace(/font-family:\s*(&quot;[^&]+&quot;|[^;"]+)/i, function () { return 'font-family:' + fam; });
     return open + inner + close;
+  });
+}
+
+/** CSS declarations <-> [[name, value], ...] (keeps &quot; style entities intact). */
+function parseStyle_(css) {
+  var safe = css.replace(/&(quot|amp|lt|gt|#\d+);/g, '\u0001$1\u0002');
+  return safe.split(';').map(function (d) {
+    var i = d.indexOf(':');
+    return i < 0 ? null : [d.slice(0, i).trim().toLowerCase(), d.slice(i + 1).trim().replace(/\u0001([^\u0002]*)\u0002/g, '&$1;')];
+  }).filter(Boolean);
+}
+function styleToString_(props) { return props.map(function (kv) { return kv[0] + ':' + kv[1]; }).join(';'); }
+function styleGet_(props, name) { var v = null; props.forEach(function (kv) { if (kv[0] === name) v = kv[1]; }); return v; }
+
+/**
+ * The Doc's "space before / after" are exported as padding on every paragraph, so the gap between two paragraphs is
+ * the sum of both (24pt for 12+12). Mail apps then show larger gaps than the Doc. As margins the two spaces overlap
+ * (the larger one wins), the way the Doc shows them. scale: 1 = as in the Doc, below 1 = tighter.
+ */
+function spaceAsMargins_(h, scale) {
+  var pt = function (v) { var m = String(v || '').match(/^([\d.]+)pt$/); return m ? parseFloat(m[1]) : null; };
+  var fmt = function (n) { return (Math.round(n * 10) / 10) + 'pt'; };
+  var liTotal = (h.match(/<li\b/gi) || []).length, liIndex = 0;
+  return h.replace(/<(p|h[1-6]|li)\b([^>]*?)\sstyle="([^"]*)"([^>]*)>/gi, function (all, tag, pre, css, post) {
+    var props = parseStyle_(css);
+    var lh = parseFloat(styleGet_(props, 'line-height'));
+    var hasLh = /^[\d.]+$/.test(String(styleGet_(props, 'line-height') || ''));
+    var hasSpace = styleGet_(props, 'padding-top') !== null || styleGet_(props, 'padding-bottom') !== null;
+    var isLi = tag.toLowerCase() === 'li', first = true, last = true;
+    if (isLi) { liIndex++; first = liIndex === 1; last = liIndex === liTotal; }
+    if (!hasSpace && !hasLh) return all;
+    var top = pt(styleGet_(props, 'padding-top')), bottom = pt(styleGet_(props, 'padding-bottom'));
+    var short = styleGet_(props, 'margin');
+    var left = styleGet_(props, 'margin-left') || (short === '0' ? '0' : null), right = styleGet_(props, 'margin-right') || (short === '0' ? '0' : null);
+    props = props.filter(function (kv) { return !/^(padding-top|padding-bottom|margin|margin-top|margin-bottom|margin-left|margin-right)$/.test(kv[0]) && (!hasLh || kv[0] !== 'line-height'); });
+    // List items: no space between items (as in the Doc); the list keeps the space above its first and below its last item.
+    props.push(['margin-top', fmt(first ? (top || 0) * scale : 0)], ['margin-bottom', fmt(last ? (bottom || 0) * scale : 0)],
+               ['margin-left', left || '0'], ['margin-right', right || '0']);
+    if (hasLh) props.push(['line-height', String(Math.round(lh * CONFIG.DOC_LINE_FACTOR * 100) / 100)]);
+    return '<' + tag + pre + ' style="' + styleToString_(props) + '"' + post + '>';
   });
 }
 
@@ -786,8 +871,8 @@ function writeRecord_(sheet, cols, rowNum, record) {
 function unsubscribeFooter_(id) {
   var url = ScriptApp.getService().getUrl();
   if (!url) return '';
-  return '<hr><p style="font-size:12px;color:#777">Don\'t want these emails? ' +
-         '<a href="' + url + '?unsubscribe=' + encodeURIComponent(id) + '">Unsubscribe</a></p>';
+  return '<p style="margin:30pt 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.4;color:#8a8a8a">Don\'t want these emails? ' +
+         '<a href="' + url + '?unsubscribe=' + encodeURIComponent(id) + '" style="color:#8a8a8a;text-decoration:underline">Unsubscribe</a></p>';
 }
 
 function fill_(str, vars, isHtml) {
