@@ -11,6 +11,8 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
 - **Subject:** optionally start an email with a line `Subject: Your subject here`. Otherwise it defaults to
   `Niche Starter Framework, part N`.
 - An email that is empty or just says "Coming soon" is skipped quietly (Last Error says so) and sent once you write it.
+- **Holding a draft:** put a line that says only `Coming soon` at the very top of an email (above `Subject:`). The whole email is
+  held back, even if the draft below it has text. Delete that line when the email is ready to go out.
 - `{{name}}` is replaced with the subscriber's name (subject and body).
 - **Formatting:** the email uses the Doc's own formatting (font, size, colour, bold/italic, alignment, line spacing, blank lines,
   links, lists, horizontal rules), taken from the Doc's HTML export, so it looks like the Doc. Mail apps that can't load the Doc's
