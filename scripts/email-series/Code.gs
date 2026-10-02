@@ -29,7 +29,7 @@ var CONFIG = {
   // form "source" value -> Google Doc (by ID, so renaming the Doc is safe) + friendly title for subjects.
   // Series not listed here fall back to matching the Doc's NAME to the source value.
   SERIES: {
-    'niche-for-growth': { docId: '1c-F5Kp3-vbU0ecnF0hbZX-M-tRF_D9VRJuDGdIajCls', title: 'Niche Starter Framework' }
+    'niche-for-growth': { docId: '1c-F5Kp3-vbU0ecnF0hbZX-M-tRF_D9VRJuDGdIajCls', title: 'The 4 research questions to test your niche' }
   },
   SEND_HOURS: [9],         // daily send time(s), 24-hour clock, in the script time zone (GMT, set in appsscript.json).
                            // Add more, e.g. [9, 12, 17], to retry people whose email was "Coming soon" earlier in the day.
@@ -508,7 +508,7 @@ function emailFromBlocks_(blocks) {
     break;
   }
   var rest = blocks.slice(i);
-  var isBlank = function (b) { return b.tag === 'p' && !b.text; };
+  var isBlank = function (b) { return (b.tag === 'p' || /^h[1-6]$/.test(b.tag)) && !b.text; };   // empty lines and empty headings
   while (rest.length && isBlank(rest[0])) rest.shift();
   while (rest.length && isBlank(rest[rest.length - 1])) rest.pop();
   var plain = rest.map(function (b) { return b.text; }).join(' ').trim();
@@ -792,9 +792,9 @@ function fill_(str, vars, isHtml) {
 }
 
 function htmlToText_(html) {
-  return decodeEntities_(html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|h\d|li)>/gi, '\n')
+  return decodeEntities_(html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|h\d)>/gi, '\n\n').replace(/<\/(li|ol|ul)>/gi, '\n')
     .replace(/<a href="([^"]*)">([^<]*)<\/a>/gi, '$2 ($1)')
-    .replace(/<[^>]+>/g, ''));
+    .replace(/<[^>]+>/g, '')).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 var NAMED_ENTITIES = { nbsp: ' ', quot: '"', apos: "'", lt: '<', gt: '>', pound: '£', euro: '€', yen: '¥', cent: '¢', copy: '©', reg: '®',
