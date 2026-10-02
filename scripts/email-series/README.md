@@ -17,6 +17,12 @@ Landing-page signup → Google Sheet → one email per day from Google Docs → 
 - **Formatting:** the email uses the Doc's own formatting (font, size, colour, bold/italic, alignment, line spacing, blank lines,
   links, lists, horizontal rules), taken from the Doc's HTML export, so it looks like the Doc. Mail apps that can't load the Doc's
   font (Gmail, for example) fall back to a similar serif font. Images and tables are not supported.
+- **Spacing:** paragraph spacing follows the Doc: "space before/after" overlap (the larger wins) instead of adding up, list items
+  sit one line apart with no extra gap, and line height matches the Doc's. `EMAIL_SPACING_SCALE` in `CONFIG` makes the gaps
+  tighter (below 1) or looser (above 1); `DOC_LINE_FACTOR` is the Docs line-height factor.
+- **Signature:** the short block after the last horizontal line (up to 6 plain paragraphs, e.g. tagline and "book a call") is
+  styled compactly: thin line, tight spacing, links in the brand colour, and a short first line (a name) in bold. If it starts
+  with the same name as the sign-off above the line, the repeat is dropped.
 - **Bot protection:** a hidden form field and a minimum fill time (bots are ignored silently), and a cap of 30 signups per hour
   (so bots can't use up your daily email quota). Blocked attempts are counted in the daily report. There is no confirmation email: email #1 goes out immediately.
 - Schedule: one email per person per day, Monday-Sunday, at 09:00 GMT (`SEND_HOURS` in `Code.gs`; the time zone is set by
