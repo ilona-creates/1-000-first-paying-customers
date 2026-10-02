@@ -53,6 +53,9 @@ var HDR_SENT = 'Total emails sent to date';
 var HEADERS = [HDR_DATE, 'Name', 'Email', HDR_CURRENT, HDR_DONE, HDR_REPLIED, 'Source', 'ID', 'Series', 'Status',
                HDR_SENT, 'Last Error'];
 
+/** A line that says just "Coming soon" at the top of an email (before Subject/Body) holds the whole email back. */
+var HOLD_RE = /^coming soon[.!]?$/i;
+
 var STATUS = { ACTIVE: 'Active', COMPLETED: 'Completed', ERROR: 'Error', UNSUBSCRIBED: 'Unsubscribed', BOUNCED: 'Bounced' };
 
 /* ------------------------------ Web endpoints ------------------------------ */
@@ -497,6 +500,7 @@ function emailFromBlocks_(blocks) {
   while (i < blocks.length) {
     var t = blocks[i].text;
     if (!t) { i++; continue; }
+    if (HOLD_RE.test(t)) return { subject: '', html: '' };   // "Coming soon" at the top = hold: not ready to send
     if (wantSubject) { subject = t; wantSubject = false; i++; continue; }
     var sm = t.match(/^subject:\s*(.*)$/i);
     if (sm) { if (sm[1]) subject = sm[1]; else wantSubject = true; i++; continue; }
@@ -595,6 +599,7 @@ function parseEmail_(body, from, to) {
     if (el.getType() !== DocumentApp.ElementType.PARAGRAPH) break;
     var t = el.asParagraph().getText().trim();
     if (!t) { from = i + 1; continue; }
+    if (HOLD_RE.test(t)) return { subject: '', html: '' };   // "Coming soon" at the top = hold: not ready to send
     if (wantSubject) { subject = t; wantSubject = false; from = i + 1; continue; }
     var m = t.match(/^subject:\s*(.*)$/i);
     if (m) { if (m[1]) subject = m[1]; else wantSubject = true; from = i + 1; continue; }
